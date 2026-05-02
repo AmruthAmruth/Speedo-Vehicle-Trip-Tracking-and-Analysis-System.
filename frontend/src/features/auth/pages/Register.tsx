@@ -6,6 +6,7 @@ import { COLORS } from '../../../constants/constants';
 import { APP_ROUTES } from '../../../constants/routes';
 import SpeedIcon from '@mui/icons-material/Speed';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { toast } from 'react-toastify';
 import '../styles/auth.css';
 
 const Register: React.FC = () => {
@@ -95,6 +96,7 @@ const Register: React.FC = () => {
 
         try {
             await register(formData.name, formData.email, formData.password);
+            toast.success('Registration successful! Welcome to Speedo.');
             // Redirect to dashboard after successful registration
             navigate(APP_ROUTES.DASHBOARD.ROOT);
         } catch (error: unknown) {
@@ -104,6 +106,7 @@ const Register: React.FC = () => {
             } else if (error instanceof Error) {
                 errorMessage = error.message;
             }
+            toast.error(errorMessage);
             setErrors(prev => ({
                 ...prev,
                 general: errorMessage,

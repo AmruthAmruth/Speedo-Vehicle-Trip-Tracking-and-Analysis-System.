@@ -10,35 +10,52 @@ import TripList from './features/dashboard/pages/TripList';
 import TripDetails from './features/dashboard/pages/TripDetails';
 import MobileTracker from './features/dashboard/pages/MobileTracker';
 
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import { APP_ROUTES } from './constants/routes';
 
 // ... (other imports)
 
 const App = () => {
   return (
-    <Routes>
-      <Route path={APP_ROUTES.HOME} element={<LandingPage />} />
-      <Route path={APP_ROUTES.LOGIN} element={<Login />} />
-      <Route path={APP_ROUTES.REGISTER} element={<Register />} />
-      
-      {/* Public Tracking Route (Accessible via QR Code) */}
-      <Route path={`dashboard/${APP_ROUTES.DASHBOARD.MOBILE_TRACKER}`} element={<MobileTracker />} />
+    <>
+      <Routes>
+        <Route path={APP_ROUTES.HOME} element={<LandingPage />} />
+        <Route path={APP_ROUTES.LOGIN} element={<Login />} />
+        <Route path={APP_ROUTES.REGISTER} element={<Register />} />
+        
+        {/* Public Tracking Route (Accessible via QR Code) */}
+        <Route path={`dashboard/${APP_ROUTES.DASHBOARD.MOBILE_TRACKER}`} element={<MobileTracker />} />
 
-      {/* Protected Dashboard Routes */}
-      <Route
-        path={APP_ROUTES.DASHBOARD.ROOT}
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<DashboardOverview />} />
-        <Route path={APP_ROUTES.DASHBOARD.UPLOAD} element={<TripUpload />} />
-        <Route path={APP_ROUTES.DASHBOARD.TRIPS} element={<TripList />} />
-        <Route path={APP_ROUTES.DASHBOARD.TRIP_DETAILS} element={<TripDetails />} />
-      </Route>
-    </Routes>
+        {/* Protected Dashboard Routes */}
+        <Route
+          path={APP_ROUTES.DASHBOARD.ROOT}
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardOverview />} />
+          <Route path={APP_ROUTES.DASHBOARD.UPLOAD} element={<TripUpload />} />
+          <Route path={APP_ROUTES.DASHBOARD.TRIPS} element={<TripList />} />
+          <Route path={APP_ROUTES.DASHBOARD.TRIP_DETAILS} element={<TripDetails />} />
+        </Route>
+      </Routes>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+    </>
   );
 };
 

@@ -14,6 +14,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { socketService } from '../../../services/socketService';
 import { getDistance } from 'geolib';
 import { detectOverspeedSections, detectIdlingPoints } from '../../../utils/mapUtils';
+import { toast } from 'react-toastify';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import SecurityIcon from '@mui/icons-material/Security';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -114,9 +115,11 @@ const TripDetails: React.FC = () => {
             setGpsPoints([]);
             setReplayIndex(null);
             await tripApi.startSimulation(id!);
+            toast.info('Simulation started');
             console.log('🚀 Simulation started');
         } catch (error) {
             console.error('Failed to start simulation:', error);
+            toast.error('Failed to start simulation');
             setIsSimulating(false);
         }
     };
@@ -124,12 +127,14 @@ const TripDetails: React.FC = () => {
     const handleStopSimulation = async () => {
         try {
             await tripApi.stopSimulation(id!);
+            toast.info('Simulation stopped');
             setIsSimulating(false);
             setLoading(true);
             await loadTripData(); // Reload full trip to show the whole path
             console.log('🛑 Simulation stopped');
         } catch (error) {
             console.error('Failed to stop simulation:', error);
+            toast.error('Failed to stop simulation');
         }
     };
 
@@ -138,10 +143,11 @@ const TripDetails: React.FC = () => {
             try {
                 setLoading(true);
                 await tripApi.deleteTrip(id!);
+                toast.success('Trip deleted successfully');
                 navigate('/dashboard/trips');
             } catch (error) {
                 console.error('Failed to delete trip:', error);
-                alert('Failed to delete trip');
+                toast.error('Failed to delete trip');
                 setLoading(false);
             }
         }

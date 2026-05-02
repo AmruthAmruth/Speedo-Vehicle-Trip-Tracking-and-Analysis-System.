@@ -7,6 +7,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import DescriptionIcon from '@mui/icons-material/Description';
+import { toast } from 'react-toastify';
 
 const TripUpload: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -80,6 +81,7 @@ const TripUpload: React.FC = () => {
             clearInterval(progressInterval);
             setUploadProgress(100);
             setUploadSuccess(true);
+            toast.success('Trip uploaded successfully!');
 
             // Redirect to trip details after 2 seconds
             setTimeout(() => {
@@ -92,6 +94,7 @@ const TripUpload: React.FC = () => {
             } else if (error instanceof Error) {
                 message = error.message;
             }
+            toast.error(message);
             setUploadError(message);
             setUploadProgress(0);
         } finally {

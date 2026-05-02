@@ -6,6 +6,7 @@ import { COLORS } from '../../../constants/constants';
 import { APP_ROUTES } from '../../../constants/routes';
 import SpeedIcon from '@mui/icons-material/Speed';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { toast } from 'react-toastify';
 import '../styles/auth.css';
 
 const Login: React.FC = () => {
@@ -76,6 +77,7 @@ const Login: React.FC = () => {
 
         try {
             await login(formData.email, formData.password);
+            toast.success('Login successful! Welcome back.');
             // Redirect to dashboard or home after successful login
             navigate(APP_ROUTES.DASHBOARD.ROOT);
         } catch (error: unknown) {
@@ -85,6 +87,7 @@ const Login: React.FC = () => {
             } else if (error instanceof Error) {
                 errorMessage = error.message;
             }
+            toast.error(errorMessage);
             setErrors(prev => ({
                 ...prev,
                 general: errorMessage,

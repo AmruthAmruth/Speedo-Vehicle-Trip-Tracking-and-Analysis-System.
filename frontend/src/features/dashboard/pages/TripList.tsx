@@ -8,6 +8,7 @@ import RouteIcon from '@mui/icons-material/Route';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { toast } from 'react-toastify';
 
 const TripList: React.FC = () => {
     const [trips, setTrips] = useState<Trip[]>([]);
@@ -59,9 +60,10 @@ const TripList: React.FC = () => {
             try {
                 await tripApi.deleteTrip(id);
                 setTrips(trips.filter(t => t._id !== id));
+                toast.success('Trip deleted successfully');
             } catch (error) {
                 console.error('Failed to delete trip:', error);
-                alert('Failed to delete trip');
+                toast.error('Failed to delete trip');
             }
         }
     };

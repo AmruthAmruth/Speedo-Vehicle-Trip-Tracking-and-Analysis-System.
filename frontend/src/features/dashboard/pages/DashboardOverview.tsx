@@ -14,6 +14,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { tripApi } from '../../../services/tripApi';
 import { Trip } from '../../../types/trip.types';
 import { formatDistance, formatDuration, calculateTripDuration } from '../../../utils/tripUtils';
+import { toast } from 'react-toastify';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import RouteIcon from '@mui/icons-material/Route';
@@ -49,10 +50,12 @@ const DashboardOverview: React.FC = () => {
             const response = await tripApi.startLiveTrip();
             setActiveTripId(response.trip._id);
             setQrModalOpen(true);
+            toast.success('Live trip started! Scan the QR code to link your phone.');
             // Refresh list to show new active trip
             loadTrips();
         } catch (error) {
             console.error('Failed to start live trip:', error);
+            toast.error('Failed to start live trip');
         }
     };
 

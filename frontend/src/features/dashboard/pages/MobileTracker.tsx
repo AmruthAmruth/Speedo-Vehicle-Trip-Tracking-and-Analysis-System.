@@ -20,6 +20,7 @@ import {
 import { socketService } from '../../../services/socketService';
 import { tripApi } from '../../../services/tripApi';
 import { formatSpeed, formatDuration } from '../../../utils/tripUtils';
+import { toast } from 'react-toastify';
 
 const MobileTracker: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -123,9 +124,11 @@ const MobileTracker: React.FC = () => {
         if (id) {
             try {
                 await tripApi.stopLiveTrip(id);
+                toast.success('Trip saved successfully!');
                 setStatus('finished');
             } catch (err) {
                 console.error("Failed to stop live trip:", err);
+                toast.error('Failed to save trip');
                 setStatus('idle');
             }
         } else {

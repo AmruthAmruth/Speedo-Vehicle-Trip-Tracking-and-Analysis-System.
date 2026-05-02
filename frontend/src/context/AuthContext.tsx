@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import axios from 'axios';
 import { authApi } from '../services/authApi';
 import { User, AuthContextType } from '../types/auth.types';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -81,6 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Clear state
         setToken(null);
         setUser(null);
+        toast.info('Logged out successfully');
     };
 
     const value: AuthContextType = {
