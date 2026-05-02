@@ -9,11 +9,15 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { toast } from 'react-toastify';
+import ConfirmationModal from '../../../components/shared/ConfirmationModal';
 
 const TripList: React.FC = () => {
     const [trips, setTrips] = useState<Trip[]>([]);
     const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const tripsPerPage = 6;
@@ -54,17 +58,27 @@ const TripList: React.FC = () => {
         setFilteredTrips(filtered);
     };
 
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
+    const handleDelete = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this trip and all its GPS data? This cannot be undone.')) {
-            try {
-                await tripApi.deleteTrip(id);
-                setTrips(trips.filter(t => t._id !== id));
-                toast.success('Trip deleted successfully');
-            } catch (error) {
-                console.error('Failed to delete trip:', error);
-                toast.error('Failed to delete trip');
-            }
+        setTripToDelete(id);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!tripToDelete) return;
+        
+        setIsDeleting(true);
+        try {
+            await tripApi.deleteTrip(tripToDelete);
+            setTrips(trips.filter(t => t._id !== tripToDelete));
+            toast.success('Trip deleted successfully');
+        } catch (error) {
+            console.error('Failed to delete trip:', error);
+            toast.error('Failed to delete trip');
+        } finally {
+            setIsDeleting(false);
+            setDeleteModalOpen(false);
+            setTripToDelete(null);
         }
     };
 
@@ -349,6 +363,17 @@ const TripList: React.FC = () => {
                     )}
                 </div>
             )}
+
+            <ConfirmationModal
+                open={deleteModalOpen}
+                title="Delete Trip"
+                message="Are you sure you want to delete this trip and all its GPS data? This action cannot be undone."
+                confirmText="Delete"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteModalOpen(false)}
+                loading={isDeleting}
+                danger
+            />
         </div>
     );
 };

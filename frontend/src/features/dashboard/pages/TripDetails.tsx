@@ -16,8 +16,8 @@ import { getDistance } from 'geolib';
 import { detectOverspeedSections, detectIdlingPoints } from '../../../utils/mapUtils';
 import { toast } from 'react-toastify';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import SecurityIcon from '@mui/icons-material/Security';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import ConfirmationModal from '../../../components/shared/ConfirmationModal';
 
 const TripDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -25,6 +25,20 @@ const TripDetails: React.FC = () => {
     const [trip, setTrip] = useState<Trip | null>(null);
     const [gpsPoints, setGpsPoints] = useState<GPSPoint[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmModal, setConfirmModal] = useState<{
+        open: boolean;
+        type: 'delete' | 'end_live' | null;
+        title: string;
+        message: string;
+        danger: boolean;
+    }>({
+        open: false,
+        type: null,
+        title: '',
+        message: '',
+        danger: false
+    });
+    const [actionLoading, setActionLoading] = useState(false);
     const [speedLimit, setSpeedLimit] = useState(80);
     const [showStoppages, setShowStoppages] = useState(true);
     const [showIdling, setShowIdling] = useState(true);
@@ -138,18 +152,46 @@ const TripDetails: React.FC = () => {
         }
     };
 
-    const handleDeleteTrip = async () => {
-        if (window.confirm('Are you sure you want to delete this trip and all its GPS data? This action cannot be undone.')) {
-            try {
-                setLoading(true);
+    const handleDeleteTrip = () => {
+        setConfirmModal({
+            open: true,
+            type: 'delete',
+            title: 'Delete Trip',
+            message: 'Are you sure you want to delete this trip and all its GPS data? This action cannot be undone.',
+            danger: true
+        });
+    };
+
+    const handleEndLiveTrip = () => {
+        setConfirmModal({
+            open: true,
+            type: 'end_live',
+            title: 'End Live Trip',
+            message: 'Are you sure you want to end this live tracking session?',
+            danger: true
+        });
+    };
+
+    const handleConfirmAction = async () => {
+        if (!confirmModal.type) return;
+
+        setActionLoading(true);
+        try {
+            if (confirmModal.type === 'delete') {
                 await tripApi.deleteTrip(id!);
                 toast.success('Trip deleted successfully');
                 navigate('/dashboard/trips');
-            } catch (error) {
-                console.error('Failed to delete trip:', error);
-                toast.error('Failed to delete trip');
-                setLoading(false);
+            } else if (confirmModal.type === 'end_live') {
+                await tripApi.stopLiveTrip(id!);
+                toast.success('Live trip ended successfully');
+                loadTripData();
             }
+        } catch (error) {
+            console.error(`Failed to ${confirmModal.type} trip:`, error);
+            toast.error(`Failed to ${confirmModal.type.replace('_', ' ')} trip`);
+        } finally {
+            setActionLoading(false);
+            setConfirmModal(prev => ({ ...prev, open: false }));
         }
     };
 
@@ -339,16 +381,7 @@ const TripDetails: React.FC = () => {
                         {trip.isActive && (
                             <button
                                 className="btn-primary"
-                                onClick={async () => {
-                                    if (window.confirm('Are you sure you want to end this live trip?')) {
-                                        try {
-                                            await tripApi.stopLiveTrip(id!);
-                                            loadTripData();
-                                        } catch (error) {
-                                            console.error('Failed to stop live trip:', error);
-                                        }
-                                    }
-                                }}
+                                onClick={handleEndLiveTrip}
                                 style={{
                                     background: '#EF4444',
                                     border: 'none',
@@ -1003,6 +1036,17 @@ const TripDetails: React.FC = () => {
                     </div>
                 </div>
             </div>
+            
+            <ConfirmationModal
+                open={confirmModal.open}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.type === 'delete' ? 'Delete' : 'End Trip'}
+                onConfirm={handleConfirmAction}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+                loading={actionLoading}
+                danger={confirmModal.danger}
+            />
         </div>
     );
 };
