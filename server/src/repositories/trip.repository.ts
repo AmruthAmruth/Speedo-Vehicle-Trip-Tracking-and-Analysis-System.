@@ -25,4 +25,9 @@ export class TripRepository implements ITripRepository {
   async update(id: string, data: Partial<ITrip>, session?: ClientSession) {
     return TripModel.findByIdAndUpdate(id, data, { new: true, session }).lean();
   }
+
+  async delete(id: string, session?: ClientSession) {
+    const result = await TripModel.deleteOne({ _id: id }, { session });
+    return result.deletedCount > 0;
+  }
 }

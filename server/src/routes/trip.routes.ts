@@ -57,4 +57,10 @@ tripRouter.post(
   tripController.stopSimulation
 );
 
+tripRouter.delete(
+  '/:id',
+  authMiddleware,
+  tripController.deleteTrip
+);
+
 export default tripRouter;

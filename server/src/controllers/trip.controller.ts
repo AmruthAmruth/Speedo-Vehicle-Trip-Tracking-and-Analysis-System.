@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { ITripUploadService } from '../interfaces/ITripUploadService';
 import { ITripRepository } from '../interfaces/ITripRepository';
 import { IGPSPointRepository } from '../interfaces/IGPSPointRepository';
@@ -206,6 +207,50 @@ export class TripController {
     res.status(HTTP_STATUS.OK).json({
       gpsPoints,
       count: gpsPoints.length
+    });
+  });
+
+  deleteTrip = asyncHandler(async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    if (!req.user) {
+      throw new UnauthorizedError(HTTP_MESSAGES.AUTH.USER_NOT_AUTHENTICATED);
+    }
+
+    const { id } = req.params;
+    const trip = await this._tripRepo.findById(id as string);
+
+    if (!trip) {
+      throw new NotFoundError(HTTP_MESSAGES.TRIP.TRIP_NOT_FOUND);
+    }
+
+    if (trip.userId.toString() !== req.user.userId) {
+      throw new ForbiddenError(HTTP_MESSAGES.TRIP.ACCESS_DENIED);
+    }
+
+    // Use a transaction for deletion
+    const session = await mongoose.startSession();
+    
+    try {
+      session.startTransaction();
+      
+      // Delete GPS Points first
+      await this._gpsRepo.deleteByTripId(id as string, session);
+      
+      // Delete Trip record
+      await this._tripRepo.delete(id as string, session);
+      
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      message: 'Trip and all associated data deleted successfully'
     });
   });
 }

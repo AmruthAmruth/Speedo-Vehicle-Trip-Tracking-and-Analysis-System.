@@ -7,6 +7,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import RouteIcon from '@mui/icons-material/Route';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const TripList: React.FC = () => {
     const [trips, setTrips] = useState<Trip[]>([]);
@@ -50,6 +51,19 @@ const TripList: React.FC = () => {
                 formatDate(trip.startTime).toLowerCase().includes(query)
         );
         setFilteredTrips(filtered);
+    };
+
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this trip and all its GPS data? This cannot be undone.')) {
+            try {
+                await tripApi.deleteTrip(id);
+                setTrips(trips.filter(t => t._id !== id));
+            } catch (error) {
+                console.error('Failed to delete trip:', error);
+                alert('Failed to delete trip');
+            }
+        }
     };
 
     if (loading) {
@@ -137,14 +151,33 @@ const TripList: React.FC = () => {
                             onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
                         >
                             {/* Trip Header */}
-                            <div style={{ marginBottom: '16px' }}>
-                                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#2d3748', margin: '0 0 8px 0' }}>
-                                    {trip.name}
-                                </h3>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#718096', fontSize: '13px' }}>
-                                    <CalendarTodayIcon style={{ fontSize: 16 }} />
-                                    <span>{formatDate(trip.startTime)}</span>
+                            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#2d3748', margin: '0 0 8px 0' }}>
+                                        {trip.name}
+                                    </h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#718096', fontSize: '13px' }}>
+                                        <CalendarTodayIcon style={{ fontSize: 16 }} />
+                                        <span>{formatDate(trip.startTime)}</span>
+                                    </div>
                                 </div>
+                                <button
+                                    onClick={(e) => handleDelete(e, trip._id)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: '#E53E3E',
+                                        padding: '4px',
+                                        borderRadius: '4px',
+                                        transition: 'background 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#FED7D7')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                                    title="Delete Trip"
+                                >
+                                    <DeleteIcon style={{ fontSize: 20 }} />
+                                </button>
                             </div>
 
                             {/* Trip Stats */}

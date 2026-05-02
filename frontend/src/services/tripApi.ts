@@ -47,5 +47,9 @@ export const tripApi = {
 
     stopLiveTrip: async (id: string): Promise<void> => {
         await api.post(API_ROUTES.TRIP.STOP_LIVE(id));
+    },
+
+    deleteTrip: async (id: string): Promise<void> => {
+        await api.delete(`/trip/${id}`);
     }
 };

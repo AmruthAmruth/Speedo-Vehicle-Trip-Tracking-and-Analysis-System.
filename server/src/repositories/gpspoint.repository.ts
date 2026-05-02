@@ -25,4 +25,8 @@ export class GPSPointRepository implements IGPSPointRepository {
       .sort({ timestamp: 1 })
       .lean();
   }
+
+  async deleteByTripId(tripId: string, session?: ClientSession) {
+    await GPSPointModel.deleteMany({ tripId }, { session });
+  }
 }

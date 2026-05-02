@@ -133,6 +133,20 @@ const TripDetails: React.FC = () => {
         }
     };
 
+    const handleDeleteTrip = async () => {
+        if (window.confirm('Are you sure you want to delete this trip and all its GPS data? This action cannot be undone.')) {
+            try {
+                setLoading(true);
+                await tripApi.deleteTrip(id!);
+                navigate('/dashboard/trips');
+            } catch (error) {
+                console.error('Failed to delete trip:', error);
+                alert('Failed to delete trip');
+                setLoading(false);
+            }
+        }
+    };
+
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
@@ -338,6 +352,17 @@ const TripDetails: React.FC = () => {
                                 ⏹️ End Live Trip
                             </button>
                         )}
+                        <button
+                            className="btn-primary"
+                            onClick={handleDeleteTrip}
+                            style={{
+                                background: '#E53E3E',
+                                border: 'none',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🗑️ Delete Trip
+                        </button>
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '0 0 8px 0' }}>
