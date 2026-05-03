@@ -44,22 +44,12 @@ const LiveTracking: React.FC = () => {
         }
     };
 
-    const handleStartLiveTracking = async () => {
-        try {
-            const response = await tripApi.startLiveTrip();
-            setActiveTripId(response.trip._id);
-            setQrModalOpen(true);
-            toast.success('Live trip started! Scan the QR code to link your phone.');
-            loadActiveTrips();
-        } catch (error) {
-            console.error('Failed to start live trip:', error);
-            toast.error('Failed to start live trip');
-        }
+    const handleStartLiveTracking = () => {
+        setQrModalOpen(true);
     };
 
-    const trackingUrl = activeTripId 
-        ? `${window.location.origin}/dashboard/track/${activeTripId}`
-        : '';
+    const trackingUrl = `${window.location.origin}/dashboard/track/new`;
+
 
     if (loading) {
         return (
@@ -176,16 +166,19 @@ const LiveTracking: React.FC = () => {
                             Scan to start tracking
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                            Open your phone camera or QR scanner to link this trip session to your mobile device.
+                            Open your phone camera or QR scanner to link this trip session to your mobile device. 
+                            <strong> Once you start tracking on your phone, the trip will appear in the active fleet list.</strong>
                         </Typography>
+
                         <Button 
-                            variant="contained" 
+                            variant="outlined" 
                             fullWidth 
-                            onClick={() => navigate(`/dashboard/trips/${activeTripId}`)}
+                            onClick={() => setQrModalOpen(false)}
                             sx={{ borderRadius: 2, py: 1.5, fontWeight: 'bold' }}
                         >
-                            Open Dashboard View
+                            Close
                         </Button>
+
                     </Box>
                 </DialogContent>
             </Dialog>

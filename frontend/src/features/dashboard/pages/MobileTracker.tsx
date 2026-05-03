@@ -26,6 +26,7 @@ const MobileTracker: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     
+    const [activeTripId, setActiveTripId] = useState<string | null>(id && id !== 'new' ? id : null);
     const [isTracking, setIsTracking] = useState(false);
     const [status, setStatus] = useState<'idle' | 'tracking' | 'error' | 'finished'>('idle');
     const [error, setError] = useState<string | null>(null);
@@ -42,22 +43,39 @@ const MobileTracker: React.FC = () => {
 
     useEffect(() => {
         socketService.connect();
-        if (id) {
-            socketService.joinTrip(id);
+        if (activeTripId) {
+            socketService.joinTrip(activeTripId);
         }
 
         return () => {
             if (isTracking) stopTracking();
         };
-    }, [id]);
+    }, [activeTripId]);
 
-    const startTracking = () => {
+    const startTracking = async () => {
         if (!navigator.geolocation) {
             setError("Geolocation is not supported by your browser");
             return;
         }
 
         setError(null);
+        
+        let currentId = activeTripId;
+        
+        // If no trip ID exists (e.g., scanned 'new' QR), create it now
+        if (!currentId) {
+            try {
+                const response = await tripApi.startLiveTrip();
+                currentId = response.trip._id;
+                setActiveTripId(currentId);
+                // socketService.joinTrip(currentId); // Handled by useEffect
+            } catch (err) {
+                console.error("Failed to start live trip:", err);
+                setError("Failed to initialize trip session. Please check your connection.");
+                return;
+            }
+        }
+
         setIsTracking(true);
         setStatus('tracking');
 
@@ -95,8 +113,8 @@ const MobileTracker: React.FC = () => {
                 });
 
                 // Emit to server
-                if (id) {
-                    socketService.emitLocationUpdate(id, point);
+                if (currentId) {
+                    socketService.emitLocationUpdate(currentId, point);
                 }
             },
             (err) => {
@@ -121,9 +139,9 @@ const MobileTracker: React.FC = () => {
 
         setIsTracking(false);
 
-        if (id) {
+        if (activeTripId) {
             try {
-                await tripApi.stopLiveTrip(id);
+                await tripApi.stopLiveTrip(activeTripId);
                 toast.success('Trip saved successfully!');
                 setStatus('finished');
             } catch (err) {

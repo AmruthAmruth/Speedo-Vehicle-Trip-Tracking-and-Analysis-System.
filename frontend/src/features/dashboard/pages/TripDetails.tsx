@@ -17,7 +17,9 @@ import { detectOverspeedSections, detectIdlingPoints } from '../../../utils/mapU
 import { toast } from 'react-toastify';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import SecurityIcon from '@mui/icons-material/Security';
 import ConfirmationModal from '../../../components/shared/ConfirmationModal';
+
 
 const TripDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
