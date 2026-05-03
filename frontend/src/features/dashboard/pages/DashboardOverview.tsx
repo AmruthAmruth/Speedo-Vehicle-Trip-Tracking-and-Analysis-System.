@@ -65,18 +65,26 @@ const DashboardOverview: React.FC = () => {
         const totalDuration = trips.reduce((sum, trip) =>
             sum + calculateTripDuration(trip.startTime, trip.endTime), 0
         );
-        const totalIdling = trips.reduce((sum, trip) => sum + (trip.totalIdlingTime || 0), 0);
+        const activeTripsCount = trips.filter(t => t.isActive).length;
 
         return {
             totalTrips,
             totalDistance,
             totalDuration,
-            totalIdling,
+            activeTripsCount
         };
     };
 
     const stats = calculateStats();
-    const recentTrips = trips.slice(0, 5);
+    
+    // Sort trips so that active ones are ALWAYS first, then by date
+    const sortedTrips = [...trips].sort((a, b) => {
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+        return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+    });
+    
+    const recentTrips = sortedTrips.slice(0, 5);
 
     // Construct the live tracking URL for mobile
     const trackingUrl = activeTripId 
@@ -103,6 +111,45 @@ const DashboardOverview: React.FC = () => {
                 </p>
             </div>
 
+            {/* Live Fleet Status Widget */}
+            {stats.activeTripsCount > 0 && (
+                <div style={{
+                    background: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)',
+                    borderRadius: '16px',
+                    padding: '20px 24px',
+                    marginBottom: '30px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: 'white',
+                    boxShadow: '0 10px 15px -3px rgba(239, 68, 68, 0.4)',
+                    animation: 'pulse-container 2s infinite'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ 
+                            background: 'rgba(255, 255, 255, 0.2)', 
+                            padding: '12px', 
+                            borderRadius: '12px' 
+                        }}>
+                            <GpsFixedIcon style={{ fontSize: 28 }} />
+                        </div>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>LIVE FLEET MONITOR</h3>
+                            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>
+                                {stats.activeTripsCount} vehicle{stats.activeTripsCount > 1 ? 's are' : ' is'} currently transmitting GPS data.
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        className="btn-secondary" 
+                        onClick={() => navigate('/dashboard/live')}
+                        style={{ background: 'white', color: '#EF4444', border: 'none', fontWeight: 800 }}
+                    >
+                        Monitor Fleet
+                    </button>
+                </div>
+            )}
+
             {/* Stats Grid */}
             <div className="stats-grid">
                 <div className="stat-card">
@@ -112,6 +159,16 @@ const DashboardOverview: React.FC = () => {
                     <div className="stat-content">
                         <p className="stat-label">Total Trips</p>
                         <h3 className="stat-value">{stats.totalTrips}</h3>
+                    </div>
+                </div>
+
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}>
+                        <GpsFixedIcon style={{ fontSize: 28 }} />
+                    </div>
+                    <div className="stat-content">
+                        <p className="stat-label">Active Trips</p>
+                        <h3 className="stat-value">{stats.activeTripsCount}</h3>
                     </div>
                 </div>
 
@@ -132,16 +189,6 @@ const DashboardOverview: React.FC = () => {
                     <div className="stat-content">
                         <p className="stat-label">Total Duration</p>
                         <h3 className="stat-value">{formatDuration(stats.totalDuration)}</h3>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-icon bg-gradient-to-br from-accent-rose to-accent-amber">
-                        <SpeedIcon style={{ fontSize: 28 }} />
-                    </div>
-                    <div className="stat-content">
-                        <p className="stat-label">Total Idling</p>
-                        <h3 className="stat-value">{formatDuration(stats.totalIdling)}</h3>
                     </div>
                 </div>
             </div>
@@ -298,6 +345,11 @@ const DashboardOverview: React.FC = () => {
                     0% { opacity: 1; }
                     50% { opacity: 0.6; }
                     100% { opacity: 1; }
+                }
+                @keyframes pulse-container {
+                    0% { box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4); }
+                    50% { box-shadow: 0 15px 25px -5px rgba(239, 68, 68, 0.6); }
+                    100% { box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4); }
                 }
             `}</style>
         </div>

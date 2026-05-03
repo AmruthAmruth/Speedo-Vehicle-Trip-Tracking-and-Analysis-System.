@@ -14,6 +14,9 @@ export const APP_ROUTES = {
         MOBILE_TRACKER: 'track/:id', // Mobile tracking page
         ANALYTICS: 'analytics', // Relative path
         SETTINGS: 'settings', // Relative path
+        LIVE_TRACKING: 'live',
+        FLEET: 'fleet',
+        DRIVERS: 'drivers',
     },
 } as const;
 

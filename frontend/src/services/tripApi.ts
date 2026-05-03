@@ -22,6 +22,11 @@ export const tripApi = {
         return response.data;
     },
 
+    getActiveTrips: async (): Promise<Trip[]> => {
+        const response = await api.get<GetTripsResponse>(API_ROUTES.TRIP.USER_TRIPS);
+        return response.data.trips.filter((trip: Trip) => trip.isActive);
+    },
+
     getTripById: async (id: string): Promise<Trip> => {
         const response = await api.get<Trip>(API_ROUTES.TRIP.GET_BY_ID(id));
         return response.data;

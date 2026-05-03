@@ -9,6 +9,9 @@ import TripUpload from './features/dashboard/pages/TripUpload';
 import TripList from './features/dashboard/pages/TripList';
 import TripDetails from './features/dashboard/pages/TripDetails';
 import MobileTracker from './features/dashboard/pages/MobileTracker';
+import LiveTracking from './features/dashboard/pages/LiveTracking';
+import FleetMap from './features/dashboard/pages/FleetMap';
+import DriverBehavior from './features/dashboard/pages/DriverBehavior';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -41,6 +44,9 @@ const App = () => {
           <Route path={APP_ROUTES.DASHBOARD.UPLOAD} element={<TripUpload />} />
           <Route path={APP_ROUTES.DASHBOARD.TRIPS} element={<TripList />} />
           <Route path={APP_ROUTES.DASHBOARD.TRIP_DETAILS} element={<TripDetails />} />
+          <Route path={APP_ROUTES.DASHBOARD.LIVE_TRACKING} element={<LiveTracking />} />
+          <Route path={APP_ROUTES.DASHBOARD.FLEET} element={<FleetMap />} />
+          <Route path={APP_ROUTES.DASHBOARD.DRIVERS} element={<DriverBehavior />} />
         </Route>
       </Routes>
       <ToastContainer
