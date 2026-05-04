@@ -1,6 +1,6 @@
 import { IUserRepository } from '../interfaces/IUserRepository';
 import { IAuthService, RegisterDTO, LoginDTO, AuthResponse, RegisterResponse } from '../interfaces/IAuthService';
-import { generateToken } from '../shared/utils/jwt.util';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../shared/utils/jwt.util';
 import { comparePassword, hashPassword } from '../shared/utils/password.util';
 import { HTTP_MESSAGES } from '../shared/constants/http.constants';
 import { BadRequestError, UnauthorizedError } from '../shared/types/errors';
@@ -48,18 +48,45 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedError(HTTP_MESSAGES.AUTH.INVALID_EMAIL_OR_PASSWORD);
     }
 
-    const token = generateToken({
+    const payload = {
       userId: user._id.toString(),
       email: user.email
-    });
+    };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
 
     return {
-      token,
+      accessToken,
+      refreshToken,
       user: {
         id: user._id.toString(),
         name: user.name,
         email: user.email
       }
     };
+  }
+
+  async refresh(token: string): Promise<{ accessToken: string; refreshToken: string }> {
+    try {
+      const decoded = verifyRefreshToken(token);
+      const user = await this._userRepository.findByEmail(decoded.email);
+
+      if (!user) {
+        throw new UnauthorizedError('User not found');
+      }
+
+      const payload = {
+        userId: user._id.toString(),
+        email: user.email
+      };
+
+      const accessToken = generateAccessToken(payload);
+      const refreshToken = generateRefreshToken(payload);
+
+      return { accessToken, refreshToken };
+    } catch (error) {
+      throw new UnauthorizedError('Invalid refresh token');
+    }
   }
 }

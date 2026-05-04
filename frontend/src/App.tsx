@@ -3,6 +3,7 @@ import LandingPage from './features/landing/pages/LandingPage';
 import Login from './features/auth/pages/Login';
 import Register from './features/auth/pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
+import GuestRoute from './components/GuestRoute';
 import DashboardLayout from './features/dashboard/layout/DashboardLayout';
 import DashboardOverview from './features/dashboard/pages/DashboardOverview';
 import TripUpload from './features/dashboard/pages/TripUpload';
@@ -18,15 +19,25 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { APP_ROUTES } from './constants/routes';
 
-// ... (other imports)
-
 const App = () => {
   return (
     <>
       <Routes>
-        <Route path={APP_ROUTES.HOME} element={<LandingPage />} />
-        <Route path={APP_ROUTES.LOGIN} element={<Login />} />
-        <Route path={APP_ROUTES.REGISTER} element={<Register />} />
+        <Route path={APP_ROUTES.HOME} element={
+          <GuestRoute>
+            <LandingPage />
+          </GuestRoute>
+        } />
+        <Route path={APP_ROUTES.LOGIN} element={
+          <GuestRoute>
+            <Login />
+          </GuestRoute>
+        } />
+        <Route path={APP_ROUTES.REGISTER} element={
+          <GuestRoute>
+            <Register />
+          </GuestRoute>
+        } />
         
         {/* Public Tracking Route (Accessible via QR Code) */}
         <Route path={`dashboard/${APP_ROUTES.DASHBOARD.MOBILE_TRACKER}`} element={<MobileTracker />} />

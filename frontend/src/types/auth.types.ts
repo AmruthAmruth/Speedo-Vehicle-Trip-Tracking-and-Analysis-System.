@@ -10,7 +10,8 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-    token: string;
+    accessToken: string;
+    refreshToken: string;
     user: User;
 }
 
@@ -28,7 +29,8 @@ export interface RegisterResponse {
 
 export interface AuthContextType {
     user: User | null;
-    token: string | null;
+    accessToken: string | null;
+    refreshToken: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;

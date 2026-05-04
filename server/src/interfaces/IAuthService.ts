@@ -10,7 +10,8 @@ export interface LoginDTO {
 }
 
 export interface AuthResponse {
-    token: string;
+    accessToken: string;
+    refreshToken: string;
     user: {
         id: string;
         name: string;
@@ -27,4 +28,5 @@ export interface RegisterResponse {
 export interface IAuthService {
     register(data: RegisterDTO): Promise<RegisterResponse>;
     login(data: LoginDTO): Promise<AuthResponse>;
+    refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }>;
 }

@@ -20,16 +20,19 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
+    const [accessToken, setAccessToken] = useState<string | null>(null);
+    const [refreshToken, setRefreshToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load user and token from localStorage on mount
+    // Load user and tokens from localStorage on mount
     useEffect(() => {
-        const storedToken = localStorage.getItem('token');
+        const storedAccessToken = localStorage.getItem('accessToken');
+        const storedRefreshToken = localStorage.getItem('refreshToken');
         const storedUser = localStorage.getItem('user');
 
-        if (storedToken && storedUser) {
-            setToken(storedToken);
+        if (storedAccessToken && storedRefreshToken && storedUser) {
+            setAccessToken(storedAccessToken);
+            setRefreshToken(storedRefreshToken);
             setUser(JSON.parse(storedUser));
         }
         setIsLoading(false);
@@ -39,12 +42,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
             const response = await authApi.login({ email, password });
 
-            // Store token and user in localStorage
-            localStorage.setItem('token', response.token);
+            // Store tokens and user in localStorage
+            localStorage.setItem('accessToken', response.accessToken);
+            localStorage.setItem('refreshToken', response.refreshToken);
             localStorage.setItem('user', JSON.stringify(response.user));
 
             // Update state
-            setToken(response.token);
+            setAccessToken(response.accessToken);
+            setRefreshToken(response.refreshToken);
             setUser(response.user);
         } catch (error: unknown) {
             let errorMessage = 'Login failed';
@@ -76,19 +81,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const logout = () => {
         // Clear localStorage
-        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
 
         // Clear state
-        setToken(null);
+        setAccessToken(null);
+        setRefreshToken(null);
         setUser(null);
         toast.info('Logged out successfully');
     };
 
     const value: AuthContextType = {
         user,
-        token,
-        isAuthenticated: !!token && !!user,
+        accessToken,
+        refreshToken,
+        isAuthenticated: !!accessToken && !!user,
         isLoading,
         login,
         register,
