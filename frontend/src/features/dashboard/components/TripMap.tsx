@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { GPSPoint } from '../../../types/trip.types';
@@ -42,6 +42,9 @@ const TripMap: React.FC<TripMapProps> = ({
     const mapRef = useRef<L.Map | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const vehicleMarkerRef = useRef<L.Marker | null>(null);
+    const [mapType, setMapType] = useState<'standard' | 'satellite' | 'hybrid'>('standard');
+    const tileLayersRef = useRef<{ [key: string]: L.TileLayer }>({});
+
 
     useEffect(() => {
         if (!mapContainerRef.current) return;
@@ -51,18 +54,52 @@ const TripMap: React.FC<TripMapProps> = ({
             mapRef.current = L.map(mapContainerRef.current, {
                 center: [0, 0],
                 zoom: 13,
-                zoomControl: true,
+                zoomControl: false, 
             });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19,
+            // Initialize all tile layers
+            tileLayersRef.current.standard = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            });
+
+            tileLayersRef.current.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                maxZoom: 19
+            });
+
+            tileLayersRef.current.hybrid = L.layerGroup([
+                tileLayersRef.current.satellite,
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                })
+            ]) as unknown as L.TileLayer;
+
+            // Add default layer
+            tileLayersRef.current.standard.addTo(mapRef.current);
+
+            // Add zoom control to bottom right
+            L.control.zoom({
+                position: 'bottomright'
             }).addTo(mapRef.current);
         }
 
-        // Clear existing layers (except tile layer and vehicle marker)
+        // Handle Map Type Switching
+        Object.values(tileLayersRef.current).forEach(layer => {
+            if (mapRef.current?.hasLayer(layer)) {
+                mapRef.current.removeLayer(layer);
+            }
+        });
+        
+        if (mapType === 'standard') tileLayersRef.current.standard.addTo(mapRef.current);
+        if (mapType === 'satellite') tileLayersRef.current.satellite.addTo(mapRef.current);
+        if (mapType === 'hybrid') tileLayersRef.current.hybrid.addTo(mapRef.current);
+
+        // Clear existing layers (except tile layers and vehicle marker)
         mapRef.current.eachLayer((layer) => {
-            if (layer instanceof L.TileLayer) return;
+            if (layer instanceof L.TileLayer || layer instanceof L.LayerGroup) return;
             if (layer === vehicleMarkerRef.current) return;
             mapRef.current?.removeLayer(layer);
         });
@@ -104,6 +141,27 @@ const TripMap: React.FC<TripMapProps> = ({
                     }
                 });
 
+                // Helper to draw path with depth (shadow effect)
+                const drawPathWithDepth = (coords: [number, number][], pathColor: string, weight: number, opacity: number) => {
+                    // Shadow/Depth line
+                    L.polyline(coords, { 
+                        color: '#000', 
+                        weight: weight + 2, 
+                        opacity: 0.1,
+                        lineJoin: 'round',
+                        lineCap: 'round'
+                    }).addTo(mapRef.current!);
+                    
+                    // Main line
+                    return L.polyline(coords, { 
+                        color: pathColor, 
+                        weight, 
+                        opacity,
+                        lineJoin: 'round',
+                        lineCap: 'round'
+                    }).addTo(mapRef.current!);
+                };
+
                 // Draw main path segments for traveled part
                 let currentSegment: [number, number][] = [];
                 for (let i = 0; i < traveledPoints.length; i++) {
@@ -112,20 +170,19 @@ const TripMap: React.FC<TripMapProps> = ({
                         currentSegment.push([point.latitude, point.longitude]);
                     } else {
                         if (currentSegment.length > 1) {
-                            L.polyline(currentSegment, { color, weight: 5, opacity: 0.9 }).addTo(mapRef.current!);
+                            drawPathWithDepth(currentSegment, color, 4, 0.8);
                         }
                         currentSegment = [[point.latitude, point.longitude]]; 
                     }
                 }
                 if (currentSegment.length > 1) {
-                    L.polyline(currentSegment, { color, weight: 5, opacity: 0.9 }).addTo(mapRef.current!);
+                    drawPathWithDepth(currentSegment, color, 4, 0.8);
                 }
 
                 // Draw overspeed sections in red
                 overspeedSections.forEach(section => {
                     const coords: [number, number][] = section.points.map(p => [p.latitude, p.longitude]);
-                    L.polyline(coords, { color: '#EF4444', weight: 6, opacity: 1.0 })
-                        .addTo(mapRef.current!)
+                    drawPathWithDepth(coords, '#EF4444', 5, 1.0)
                         .bindPopup(`
                             <div class="map-popup overspeed">
                               <h4>⚠️ Overspeed Section</h4>
@@ -136,9 +193,37 @@ const TripMap: React.FC<TripMapProps> = ({
                 });
             }
 
-            // Add start/end markers
-            const startIcon = L.divIcon({ className: 'custom-marker', html: '<div class="marker-pin start">S</div>', iconSize: [30, 42], iconAnchor: [15, 42] });
-            const endIcon = L.divIcon({ className: 'custom-marker', html: '<div class="marker-pin end">E</div>', iconSize: [30, 42], iconAnchor: [15, 42] });
+            // Add start/end markers with modern SVG icons
+            const startIcon = L.divIcon({ 
+                className: 'modern-marker start', 
+                html: `
+                    <div class="marker-container">
+                        <div class="marker-pulse"></div>
+                        <div class="marker-inner">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" transform="rotate(45 12 12)"/>
+                            </svg>
+                        </div>
+                    </div>
+                `, 
+                iconSize: [32, 32], 
+                iconAnchor: [16, 16] 
+            });
+
+            const endIcon = L.divIcon({ 
+                className: 'modern-marker end', 
+                html: `
+                    <div class="marker-container">
+                        <div class="marker-inner">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/>
+                            </svg>
+                        </div>
+                    </div>
+                `, 
+                iconSize: [32, 32], 
+                iconAnchor: [16, 16] 
+            });
 
             L.marker([sortedPoints[0].latitude, sortedPoints[0].longitude], { icon: startIcon }).addTo(mapRef.current!).bindPopup('Trip Start');
             L.marker([sortedPoints[sortedPoints.length - 1].latitude, sortedPoints[sortedPoints.length - 1].longitude], { icon: endIcon }).addTo(mapRef.current!).bindPopup('Trip End');
@@ -146,7 +231,20 @@ const TripMap: React.FC<TripMapProps> = ({
             // Add stoppages
             if (showStoppages) {
                 detectStoppages(sortedPoints).forEach((s, i) => {
-                    const icon = L.divIcon({ className: 'custom-marker', html: '<div class="marker-pin stoppage">P</div>', iconSize: [30, 42], iconAnchor: [15, 42] });
+                    const icon = L.divIcon({ 
+                        className: 'modern-marker stoppage', 
+                        html: `
+                            <div class="marker-container smaller">
+                                <div class="marker-inner">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                                        <path d="M18.17 4.91L12 18.17l-6.17-13.26L12 2l6.17 2.91zM12 11.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        `, 
+                        iconSize: [24, 24], 
+                        iconAnchor: [12, 12] 
+                    });
                     L.marker([s.location.lat, s.location.lng], { icon }).addTo(mapRef.current!)
                         .bindPopup(`🅿️ Stoppage #${i+1}<br>Duration: ${formatDuration(s.duration)}`);
                 });
@@ -155,7 +253,20 @@ const TripMap: React.FC<TripMapProps> = ({
             // Add idling
             if (showIdling) {
                 detectIdlingPoints(sortedPoints).forEach((id, i) => {
-                    const icon = L.divIcon({ className: 'custom-marker', html: '<div class="marker-pin idling">I</div>', iconSize: [30, 42], iconAnchor: [15, 42] });
+                    const icon = L.divIcon({ 
+                        className: 'modern-marker idling', 
+                        html: `
+                            <div class="marker-container smaller">
+                                <div class="marker-inner">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2C11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        `, 
+                        iconSize: [24, 24], 
+                        iconAnchor: [12, 12] 
+                    });
                     L.marker([id.location.lat, id.location.lng], { icon }).addTo(mapRef.current!)
                         .bindPopup(`⏸️ Idling #${i+1}<br>Duration: ${formatDuration(id.duration)}`);
                 });
@@ -177,9 +288,14 @@ const TripMap: React.FC<TripMapProps> = ({
             const vehicleIcon = L.divIcon({
                 className: 'live-vehicle-icon',
                 html: `
-                    <div class="live-vehicle-marker-wrapper" style="background: #4F46E5; width: 22px; height: 22px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 15px rgba(79, 70, 229, 0.6); position: relative; display: flex; align-items: center; justify-content: center; transform: rotate(${activePoint.heading || 0}deg);">
-                        <div style="position: absolute; top: -8px; left: -8px; width: 38px; height: 38px; background: rgba(79, 70, 229, 0.2); border-radius: 50%; animation: pulse-anim 2s infinite;"></div>
-                        <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid white; margin-bottom: 2px;"></div>
+                    <div class="vehicle-navigation-marker" style="transform: rotate(${activePoint.heading || 0}deg);">
+                        <div class="navigation-arrow-shadow"></div>
+                        <div class="navigation-arrow-main">
+                            <svg viewBox="0 0 24 24" width="28" height="28">
+                                <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" fill="#4F46E5" stroke="white" stroke-width="1.5" />
+                            </svg>
+                        </div>
+                        <div class="navigation-pulse"></div>
                     </div>
                 `,
                 iconSize: [40, 40],
@@ -204,7 +320,7 @@ const TripMap: React.FC<TripMapProps> = ({
             `, { permanent: false, direction: 'top' });
         }
 
-    }, [gpsPoints, tripName, speedLimit, showStoppages, showIdling, color, activePointIndex]);
+    }, [gpsPoints, tripName, speedLimit, showStoppages, showIdling, color, activePointIndex, mapType]);
 
     useEffect(() => {
         return () => {
@@ -221,29 +337,74 @@ const TripMap: React.FC<TripMapProps> = ({
             <div style={{
                 position: 'absolute',
                 top: '20px',
-                left: '60px',
+                left: '20px',
                 zIndex: 1000,
-                background: 'rgba(255, 255, 255, 0.95)',
+                background: mapType === 'standard' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.9)',
                 padding: '8px 12px',
-                borderRadius: '8px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '12px',
-                fontWeight: '600',
-                border: '1px solid #e2e8f0'
+                fontWeight: '700',
+                border: mapType === 'standard' ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(8px)',
+                color: mapType === 'standard' ? '#4a5568' : '#f8fafc',
+                transition: 'all 0.3s ease'
             }}>
                 <div style={{
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    background: gpsPoints.length > 0 ? '#48bb78' : '#cbd5e0',
-                    boxShadow: gpsPoints.length > 0 ? '0 0 8px #48bb78' : 'none'
+                    background: gpsPoints.length > 0 ? '#10b981' : '#94a3b8',
+                    boxShadow: gpsPoints.length > 0 ? '0 0 8px #10b981' : 'none'
                 }}></div>
-                <span style={{ color: '#4a5568' }}>
-                    {gpsPoints.length > 0 ? `LIVE: Receiving Points (${gpsPoints.length})` : 'WAITING FOR DATA...'}
+                <span>
+                    {gpsPoints.length > 0 ? `RECEIVING DATA (${gpsPoints.length})` : 'WAITING...'}
                 </span>
+            </div>
+
+            {/* Map Type Toggle */}
+            <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                zIndex: 1000,
+                display: 'flex',
+                background: mapType === 'standard' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.9)',
+                padding: '4px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+                border: mapType === 'standard' ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.3s ease'
+            }}>
+                {[
+                    { id: 'standard', label: 'Clean' },
+                    { id: 'satellite', label: 'Satellite' },
+                    { id: 'hybrid', label: 'Hybrid' }
+                ].map((type) => (
+                    <button
+                        key={type.id}
+                        onClick={() => setMapType(type.id as any)}
+                        style={{
+                            padding: '6px 12px',
+                            fontSize: '11px',
+                            fontWeight: '800',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            background: mapType === type.id ? '#4F46E5' : 'transparent',
+                            color: mapType === type.id ? 'white' : (mapType === 'standard' ? '#64748b' : '#94a3b8'),
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.02em'
+                        }}
+                    >
+                        {type.label}
+                    </button>
+                ))}
             </div>
             <div ref={mapContainerRef} className="trip-map" />
         </div>
