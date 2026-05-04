@@ -34,6 +34,21 @@ export const HTTP_MESSAGES = {
         ACCESS_DENIED: 'Access denied',
         FAILED_TO_FETCH_TRIP: 'Failed to fetch trip',
         FAILED_TO_FETCH_GPS_POINTS: 'Failed to fetch GPS points',
+        LIVE_TRIP_STARTED: 'Live trip started successfully',
+        LIVE_TRIP_STOPPED: 'Live trip stopped successfully',
+        TRIP_DELETED: 'Trip and all associated data deleted successfully',
+    },
+
+    SIMULATION: {
+        STARTED: 'Simulation started successfully',
+        STOPPED: 'Simulation stopped successfully',
+        FAILED_TO_START: 'Failed to start simulation',
+        FAILED_TO_STOP: 'Failed to stop simulation',
+    },
+
+    GPS: {
+        INVALID_DATA: 'Invalid GPS point data',
+        ACCEPTED: 'GPS point accepted for processing',
     },
 
      

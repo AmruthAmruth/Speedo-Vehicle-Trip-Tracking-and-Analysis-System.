@@ -1,7 +1,6 @@
 import { Response } from 'express';
-import mongoose from 'mongoose';
 import { ITripUploadService } from '../interfaces/ITripUploadService';
-import { ITripRepository } from '../interfaces/ITripRepository';
+import { ITripService } from '../interfaces/ITripService';
 import { IGPSPointRepository } from '../interfaces/IGPSPointRepository';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { HTTP_STATUS, HTTP_MESSAGES } from '../shared/constants/http.constants';
@@ -9,20 +8,17 @@ import { asyncHandler } from '../shared/utils/asyncHandler';
 import {
   UnauthorizedError,
   BadRequestError,
-  NotFoundError,
-  ForbiddenError,
   InternalServerError,
   CSVValidationError
 } from '../shared/types/errors';
 import { injectable, inject } from 'tsyringe';
-
 import { SimulationService } from '../services/simulation.service';
 
 @injectable()
 export class TripController {
   constructor(
-    @inject('ITripUploadService') private _service: ITripUploadService,
-    @inject('ITripRepository') private _tripRepo: ITripRepository,
+    @inject('ITripUploadService') private _uploadService: ITripUploadService,
+    @inject('ITripService') private _tripService: ITripService,
     @inject('IGPSPointRepository') private _gpsRepo: IGPSPointRepository,
     @inject('SimulationService') private _simulationService: SimulationService
   ) { }
@@ -36,16 +32,10 @@ export class TripController {
     }
 
     const { name } = req.body;
-
-    const trip = await this._tripRepo.create({
-      userId: req.user.userId as any,
-      name: name || `Live Trip ${new Date().toLocaleString()}`,
-      startTime: new Date(),
-      isActive: true
-    });
+    const trip = await this._tripService.startLiveTrip(req.user.userId, name);
 
     res.status(HTTP_STATUS.CREATED).json({
-      message: 'Live trip started successfully',
+      message: HTTP_MESSAGES.TRIP.LIVE_TRIP_STARTED,
       trip
     });
   });
@@ -59,23 +49,10 @@ export class TripController {
     }
 
     const { id } = req.params;
-    const trip = await this._tripRepo.findById(id as string);
-
-    if (!trip) {
-      throw new NotFoundError(HTTP_MESSAGES.TRIP.TRIP_NOT_FOUND);
-    }
-
-    if (trip.userId.toString() !== req.user.userId) {
-      throw new ForbiddenError(HTTP_MESSAGES.TRIP.ACCESS_DENIED);
-    }
-
-    const updatedTrip = await this._tripRepo.update(id as string, {
-      isActive: false,
-      endTime: new Date()
-    });
+    const updatedTrip = await this._tripService.stopLiveTrip(req.user.userId, id as string);
 
     res.status(HTTP_STATUS.OK).json({
-      message: 'Live trip stopped successfully',
+      message: HTTP_MESSAGES.TRIP.LIVE_TRIP_STOPPED,
       trip: updatedTrip
     });
   });
@@ -86,11 +63,10 @@ export class TripController {
   ) => {
     const { id } = req.params;
     
-    // Start simulation in background
     this._simulationService.startSimulation(id as string);
 
     res.status(HTTP_STATUS.OK).json({
-      message: 'Simulation started successfully'
+      message: HTTP_MESSAGES.SIMULATION.STARTED
     });
   });
 
@@ -103,7 +79,7 @@ export class TripController {
     this._simulationService.stopSimulation(id as string);
 
     res.status(HTTP_STATUS.OK).json({
-      message: 'Simulation stopped successfully'
+      message: HTTP_MESSAGES.SIMULATION.STOPPED
     });
   });
 
@@ -120,7 +96,7 @@ export class TripController {
     }
 
     try {
-      const result = await this._service.uploadTrip(
+      const result = await this._uploadService.uploadTrip(
         req.user.userId,
         req.file.buffer
       );
@@ -153,7 +129,7 @@ export class TripController {
       throw new UnauthorizedError(HTTP_MESSAGES.AUTH.USER_NOT_AUTHENTICATED);
     }
 
-    const trips = await this._tripRepo.findByUserId(req.user.userId);
+    const trips = await this._tripService.getUserTrips(req.user.userId);
 
     res.status(HTTP_STATUS.OK).json({
       trips,
@@ -170,15 +146,7 @@ export class TripController {
     }
 
     const { id } = req.params;
-    const trip = await this._tripRepo.findById(id as string);
-
-    if (!trip) {
-      throw new NotFoundError(HTTP_MESSAGES.TRIP.TRIP_NOT_FOUND);
-    }
-
-    if (trip.userId.toString() !== req.user.userId) {
-      throw new ForbiddenError(HTTP_MESSAGES.TRIP.ACCESS_DENIED);
-    }
+    const trip = await this._tripService.getTripById(req.user.userId, id as string);
 
     res.status(HTTP_STATUS.OK).json(trip);
   });
@@ -193,15 +161,8 @@ export class TripController {
 
     const { id } = req.params;
 
-    const trip = await this._tripRepo.findById(id as string);
-    if (!trip) {
-      throw new NotFoundError(HTTP_MESSAGES.TRIP.TRIP_NOT_FOUND);
-    }
-
-    if (trip.userId.toString() !== req.user.userId) {
-      throw new ForbiddenError(HTTP_MESSAGES.TRIP.ACCESS_DENIED);
-    }
-
+    // Use service to verify access before fetching points
+    await this._tripService.getTripById(req.user.userId, id as string);
     const gpsPoints = await this._gpsRepo.findByTripId(id as string);
 
     res.status(HTTP_STATUS.OK).json({
@@ -219,38 +180,10 @@ export class TripController {
     }
 
     const { id } = req.params;
-    const trip = await this._tripRepo.findById(id as string);
-
-    if (!trip) {
-      throw new NotFoundError(HTTP_MESSAGES.TRIP.TRIP_NOT_FOUND);
-    }
-
-    if (trip.userId.toString() !== req.user.userId) {
-      throw new ForbiddenError(HTTP_MESSAGES.TRIP.ACCESS_DENIED);
-    }
-
-    // Use a transaction for deletion
-    const session = await mongoose.startSession();
-    
-    try {
-      session.startTransaction();
-      
-      // Delete GPS Points first
-      await this._gpsRepo.deleteByTripId(id as string, session);
-      
-      // Delete Trip record
-      await this._tripRepo.delete(id as string, session);
-      
-      await session.commitTransaction();
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    await this._tripService.deleteTrip(req.user.userId, id as string);
 
     res.status(HTTP_STATUS.OK).json({
-      message: 'Trip and all associated data deleted successfully'
+      message: HTTP_MESSAGES.TRIP.TRIP_DELETED
     });
   });
 }

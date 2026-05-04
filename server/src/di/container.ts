@@ -6,6 +6,7 @@ import { AuthService } from '../services/auth.service';
 import { TripUploadService } from '../services/tripUpload.service';
 import { CsvService } from '../services/csv.service';
 import { SimulationService } from '../services/simulation.service';
+import { TripService } from '../services/trip.service';
 import { SocketService } from '../services/socket.service';
 import { GPSQueueService } from '../services/gpsQueue.service';
 import { RedisCacheService } from '../services/cache.service';
@@ -18,6 +19,7 @@ container.register('IGPSPointRepository', { useClass: GPSPointRepository });
 
 
 container.register('IAuthService', { useClass: AuthService });
+container.register('ITripService', { useClass: TripService });
 container.register('ITripUploadService', { useClass: TripUploadService });
 container.register('ICsvService', { useClass: CsvService });
 container.registerSingleton('SimulationService', SimulationService);
