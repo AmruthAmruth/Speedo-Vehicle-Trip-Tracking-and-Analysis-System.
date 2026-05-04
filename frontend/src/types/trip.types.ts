@@ -8,6 +8,10 @@ export interface Trip {
     totalIdlingTime: number;
     totalStoppageTime: number;
     isActive?: boolean;
+    metadata?: {
+        source?: 'simulation' | 'mobile' | 'upload';
+        [key: string]: any;
+    };
     createdAt: string;
     updatedAt: string;
 }
