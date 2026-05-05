@@ -65,7 +65,7 @@ const Badge: React.FC<BadgeProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
-                boxShadow: style.shadow,
+                boxShadow: (style as any).shadow,
                 border: (style as any).border || 'none',
                 textTransform: 'uppercase',
                 ...pulse ? { animation: 'pulse-live 2s infinite' } : {}

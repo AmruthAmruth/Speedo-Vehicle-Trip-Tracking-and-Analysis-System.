@@ -5,8 +5,7 @@ import {
     DialogContent,
     DialogActions,
     Button,
-    Typography,
-    Box
+    Typography
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 

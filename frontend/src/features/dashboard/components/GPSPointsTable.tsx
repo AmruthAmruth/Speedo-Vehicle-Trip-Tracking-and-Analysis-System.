@@ -86,7 +86,7 @@ const GPSPointsTable: React.FC<GPSPointsTableProps> = ({
                                     </span>
                                 </td>
                                 <td className="p-3 text-sm text-text-secondary">
-                                    {point.batteryLevel ? `${point.batteryLevel}%` : 'N/A'}
+                                    {(point as any).batteryLevel ? `${(point as any).batteryLevel}%` : 'N/A'}
                                 </td>
                             </tr>
                         ))}

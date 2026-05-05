@@ -181,7 +181,7 @@ const DriverBehavior: React.FC = () => {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {activityData.map((entry, index) => (
+                                    {activityData.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>

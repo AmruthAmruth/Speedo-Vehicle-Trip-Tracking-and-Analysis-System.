@@ -182,7 +182,7 @@ const TripDetails: React.FC = () => {
 
             <DriverBehaviorInsight 
                 insight={driverInsight}
-                isLive={isSimulating || trip.isActive}
+                isLive={isSimulating || !!trip.isActive}
             />
 
             <MapSection 

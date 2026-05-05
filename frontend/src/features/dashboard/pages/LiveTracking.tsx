@@ -18,7 +18,6 @@ import {
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import { formatDate, formatDuration, calculateTripDuration } from '../../../utils/tripUtils';
-import { toast } from 'react-toastify';
 
 const LiveTracking: React.FC = () => {
     const [activeTrips, setActiveTrips] = useState<Trip[]>([]);
