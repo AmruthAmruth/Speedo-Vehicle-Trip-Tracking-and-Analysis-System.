@@ -14,12 +14,13 @@ export class TripService implements ITripService {
         @inject('IGPSPointRepository') private _gpsRepo: IGPSPointRepository
     ) { }
 
-    async startLiveTrip(userId: string, name?: string): Promise<ITrip> {
+    async startLiveTrip(userId: string, name?: string, metadata?: any): Promise<ITrip> {
         return this._tripRepo.create({
             userId: userId as any,
             name: name || `Live Trip ${new Date().toLocaleString()}`,
             startTime: new Date(),
-            isActive: true
+            isActive: true,
+            metadata: metadata || {}
         });
     }
 

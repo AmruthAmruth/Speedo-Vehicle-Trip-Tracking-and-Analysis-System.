@@ -31,8 +31,8 @@ export class TripController {
       throw new UnauthorizedError(HTTP_MESSAGES.AUTH.USER_NOT_AUTHENTICATED);
     }
 
-    const { name } = req.body;
-    const trip = await this._tripService.startLiveTrip(req.user.userId, name);
+    const { name, metadata } = req.body;
+    const trip = await this._tripService.startLiveTrip(req.user.userId, name, metadata);
 
     res.status(HTTP_STATUS.CREATED).json({
       message: HTTP_MESSAGES.TRIP.LIVE_TRIP_STARTED,

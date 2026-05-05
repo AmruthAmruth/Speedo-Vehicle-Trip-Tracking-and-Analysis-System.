@@ -48,8 +48,8 @@ export const tripApi = {
         await api.post(`/trip/${id}/simulate/stop`);
     },
     
-    startLiveTrip: async (name?: string): Promise<{ trip: Trip }> => {
-        const response = await api.post<{ trip: Trip }>(API_ROUTES.TRIP.START_LIVE, { name });
+    startLiveTrip: async (name?: string, metadata?: any): Promise<{ trip: Trip }> => {
+        const response = await api.post<{ trip: Trip }>(API_ROUTES.TRIP.START_LIVE, { name, metadata });
         return response.data;
     },
 

@@ -8,7 +8,12 @@ export interface ITrip extends Document {
   totalDistance: number;        
   totalIdlingTime: number;      
   totalStoppageTime: number;    
-  isActive: boolean;            
+  isActive: boolean;
+  metadata?: {
+    source?: 'mobile' | 'simulation' | 'upload';
+    deviceName?: string;
+    [key: string]: any;
+  };
   createdAt: Date;
 }
 
@@ -46,6 +51,10 @@ const TripSchema = new Schema<ITrip>(
     isActive: {
       type: Boolean,
       default: false
+    },
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: {}
     }
   },
   {

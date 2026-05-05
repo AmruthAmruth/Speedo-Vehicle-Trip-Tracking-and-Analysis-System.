@@ -54,7 +54,7 @@ export class SocketService {
             socket.on('locationUpdate', async (data: { tripId: string, point: any }) => {
                 const { tripId, point } = data;
                 console.log(`📥 Received live point for trip ${tripId}`);
-                
+
                 // Add to queue for processing and broadcasting
                 const queueService = container.resolve<IGPSQueueService>('IGPSQueueService');
                 await queueService.addGPSJob(tripId, point);
