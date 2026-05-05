@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 
 const TripUpload: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
+    const [tripName, setTripName] = useState('');
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -76,7 +77,7 @@ const TripUpload: React.FC = () => {
                 });
             }, 200);
 
-            const response = await tripApi.uploadTrip(file);
+            const response = await tripApi.uploadTrip(file, tripName);
 
             clearInterval(progressInterval);
             setUploadProgress(100);
@@ -104,6 +105,7 @@ const TripUpload: React.FC = () => {
 
     const resetUpload = () => {
         setFile(null);
+        setTripName('');
         setUploadSuccess(false);
         setUploadError(null);
         setUploadProgress(0);
@@ -176,6 +178,44 @@ const TripUpload: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Trip Name Input */}
+                {file && !uploadSuccess && (
+                    <div style={{ marginBottom: '24px' }}>
+                        <label 
+                            htmlFor="tripName" 
+                            style={{ 
+                                display: 'block', 
+                                fontSize: '14px', 
+                                fontWeight: 600, 
+                                color: '#4a5568', 
+                                marginBottom: '8px' 
+                            }}
+                        >
+                            Trip Name (Optional)
+                        </label>
+                        <input
+                            id="tripName"
+                            type="text"
+                            placeholder="Enter a name for this trip (e.g. Office Commute)"
+                            value={tripName}
+                            onChange={(e) => setTripName(e.target.value)}
+                            disabled={uploading}
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0',
+                                fontSize: '14px',
+                                outline: 'none',
+                                transition: 'border-color 0.2s',
+                                background: uploading ? '#f7fafc' : 'white'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                            onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                        />
+                    </div>
+                )}
 
                 {/* Upload Progress */}
                 {uploading && (

@@ -18,7 +18,8 @@ export class TripUploadService implements ITripUploadService {
 
   async uploadTrip(
     userId: string,
-    fileBuffer: Buffer
+    fileBuffer: Buffer,
+    name?: string
   ) {
     // 1. Parse CSV
     const rawRows = await this._csvService.parseCSV(fileBuffer);
@@ -43,6 +44,7 @@ export class TripUploadService implements ITripUploadService {
       // 4. Create Trip
       const trip = await this._tripRepo.create({
         userId: new Types.ObjectId(userId),
+        name: name || 'Uploaded Trip',
         startTime: new Date(rows[0].timestamp),
         endTime: new Date(rows[rows.length - 1].timestamp)
       }, session);

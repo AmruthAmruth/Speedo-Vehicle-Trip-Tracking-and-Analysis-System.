@@ -4,9 +4,12 @@ import { API_ROUTES } from '../constants/api';
 
 export const tripApi = {
     // Upload a trip CSV file
-    uploadTrip: async (file: File): Promise<TripUploadResponse> => {
+    uploadTrip: async (file: File, name?: string): Promise<TripUploadResponse> => {
         const formData = new FormData();
         formData.append('file', file);
+        if (name) {
+            formData.append('name', name);
+        }
 
         const response = await api.post<TripUploadResponse>(API_ROUTES.TRIP.UPLOAD, formData, {
             headers: {

@@ -95,10 +95,13 @@ export class TripController {
       throw new BadRequestError(HTTP_MESSAGES.TRIP.NO_FILE_UPLOADED);
     }
 
+    const { name } = req.body;
+
     try {
       const result = await this._uploadService.uploadTrip(
         req.user.userId,
-        req.file.buffer
+        req.file.buffer,
+        name
       );
 
       res.status(HTTP_STATUS.CREATED).json({
