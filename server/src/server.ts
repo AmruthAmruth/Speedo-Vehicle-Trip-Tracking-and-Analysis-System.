@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnv = ['JWT_SECRET', 'MONGODB_URI'];
+const requiredEnv = ['JWT_SECRET', 'MONGO_URI'];
 requiredEnv.forEach((env) => {
   if (!process.env[env]) {
     console.error(`❌ CRITICAL ERROR: Environment variable ${env} is missing!`);
