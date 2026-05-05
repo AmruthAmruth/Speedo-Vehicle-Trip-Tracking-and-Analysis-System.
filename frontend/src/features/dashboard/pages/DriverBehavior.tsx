@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { 
-    TrendingUp as TrendingUpIcon, 
-    Security as SecurityIcon, 
+import {
+    TrendingUp as TrendingUpIcon,
+    Security as SecurityIcon,
     DirectionsCar as CarIcon,
     LocalGasStation as GasIcon,
     Co2 as Co2Icon
 } from '@mui/icons-material';
-import { 
+import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend
 } from 'recharts';
@@ -52,8 +52,8 @@ const DriverBehavior: React.FC = () => {
         };
     }).reverse();
 
-    const avgSafetyScore = tripScores.length > 0 
-        ? Math.round(tripScores.reduce((acc, s) => acc + s.score, 0) / tripScores.length) 
+    const avgSafetyScore = tripScores.length > 0
+        ? Math.round(tripScores.reduce((acc, s) => acc + s.score, 0) / tripScores.length)
         : 85;
 
     const activityData = [
@@ -151,14 +151,14 @@ const DriverBehavior: React.FC = () => {
                             <AreaChart data={tripScores}>
                                 <defs>
                                     <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                 <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                                 <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <Tooltip 
+                                <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                                 />
                                 <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" name="Safety Score" />
@@ -186,7 +186,7 @@ const DriverBehavior: React.FC = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip />
-                                <Legend verticalAlign="bottom" height={36}/>
+                                <Legend verticalAlign="bottom" height={36} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -247,10 +247,10 @@ const DriverBehavior: React.FC = () => {
                                         <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>{s.name}</td>
                                         <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 700, color: s.score > 80 ? '#10b981' : '#f59e0b' }}>{s.score}</td>
                                         <td style={{ padding: '16px 24px' }}>
-                                            <span style={{ 
-                                                padding: '4px 10px', 
-                                                borderRadius: '20px', 
-                                                fontSize: '11px', 
+                                            <span style={{
+                                                padding: '4px 10px',
+                                                borderRadius: '20px',
+                                                fontSize: '11px',
                                                 fontWeight: 800,
                                                 background: s.score > 90 ? '#dcfce7' : s.score > 80 ? '#ecfdf5' : '#fffbeb',
                                                 color: s.score > 90 ? '#15803d' : s.score > 80 ? '#10b981' : '#b45309'

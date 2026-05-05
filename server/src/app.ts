@@ -13,7 +13,22 @@ const app = express();
 app.set('trust proxy', 1);
 
 
-app.use(cors());
+const allowedOrigins = [
+  'https://speedo-vehicle-trip-tracking-and-an.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
  
