@@ -9,6 +9,9 @@ import { globalLimiter } from './middleware/rateLimit.middleware';
 
 const app = express();
 
+// Trust proxy settings for Render/Cloud environments
+app.set('trust proxy', 1);
+
 
 app.use(cors());
 app.use(express.json());
