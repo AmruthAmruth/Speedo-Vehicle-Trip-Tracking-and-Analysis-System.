@@ -57,7 +57,15 @@ export const authMiddleware = (
     if (error instanceof UnauthorizedError) {
       next(error);
     } else {
-      next(new UnauthorizedError(HTTP_MESSAGES.AUTH.INVALID_OR_EXPIRED_TOKEN));
+      const jwtError = error as Error;
+      console.error('JWT Verification Error:', jwtError.message);
+      
+      // Provide more specific message if it's an expiration issue
+      const message = jwtError.name === 'TokenExpiredError' 
+        ? 'Your session has expired. Please login again.' 
+        : HTTP_MESSAGES.AUTH.INVALID_OR_EXPIRED_TOKEN;
+        
+      next(new UnauthorizedError(message));
     }
   }
 };

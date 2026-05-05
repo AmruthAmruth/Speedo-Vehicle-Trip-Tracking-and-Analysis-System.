@@ -2,6 +2,15 @@ import 'reflect-metadata';
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnv = ['JWT_SECRET', 'MONGODB_URI'];
+requiredEnv.forEach((env) => {
+  if (!process.env[env]) {
+    console.error(`❌ CRITICAL ERROR: Environment variable ${env} is missing!`);
+    process.exit(1);
+  }
+});
+
 import dns from 'dns';
 
 // Force use of Google DNS to bypass local SRV resolution issues
