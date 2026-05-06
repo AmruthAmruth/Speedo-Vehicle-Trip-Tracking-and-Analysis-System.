@@ -58,8 +58,6 @@ export const authMiddleware = (
       next(error);
     } else {
       const jwtError = error as Error;
-      console.error('JWT Verification Error:', jwtError.message);
-      
       // Provide more specific message if it's an expiration issue
       const message = jwtError.name === 'TokenExpiredError' 
         ? 'Your session has expired. Please login again.' 

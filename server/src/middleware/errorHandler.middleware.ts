@@ -23,15 +23,18 @@ export const errorHandler = (
         error = err.message;
     }
 
-     
-    console.error('Error:', {
-        statusCode,
-        message,
-        error: error || err.message,
-        stack: err.stack,
-        path: req.path,
-        method: req.method,
-    });
+    if (statusCode >= 500) {
+        console.error('Error:', {
+            statusCode,
+            message,
+            error: error || err.message,
+            stack: err.stack,
+            path: req.path,
+            method: req.method,
+        });
+    } else {
+        console.warn(`[${req.method}] ${req.path} - ${statusCode}: ${message}`);
+    }
 
      
     interface ErrorResponse {
