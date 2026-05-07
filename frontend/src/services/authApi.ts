@@ -14,17 +14,17 @@ export const authApi = {
     },
 
     getPairingToken: async (): Promise<{ pairingToken: string }> => {
-        const response = await api.get<{ pairingToken: string }>('/auth/devices/pair');
+        const response = await api.get<{ pairingToken: string }>(API_ROUTES.AUTH.PAIR);
         return response.data;
     },
 
     linkDevice: async (data: { pairingToken: string; deviceId: string; deviceName: string }): Promise<{ deviceToken: string; deviceSecret: string }> => {
-        const response = await api.post<{ deviceToken: string; deviceSecret: string }>('/auth/devices/link', data);
+        const response = await api.post<{ deviceToken: string; deviceSecret: string }>(API_ROUTES.AUTH.LINK, data);
         return response.data;
     },
 
     validateDeviceSecret: async (data: { deviceId: string; deviceSecret: string }): Promise<LoginResponse> => {
-        const response = await api.post<LoginResponse>('/auth/devices/validate-secret', data);
+        const response = await api.post<LoginResponse>(API_ROUTES.AUTH.VALIDATE_SECRET, data);
         return response.data;
     },
 };

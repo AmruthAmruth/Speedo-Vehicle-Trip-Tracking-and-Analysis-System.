@@ -6,6 +6,9 @@ export const API_ROUTES = {
     AUTH: {
         LOGIN: '/api/login',
         REGISTER: '/api/register',
+        PAIR: '/api/devices/pair',
+        LINK: '/api/devices/link',
+        VALIDATE_SECRET: '/api/devices/validate-secret',
     },
     TRIP: {
         UPLOAD: '/trip/upload',
