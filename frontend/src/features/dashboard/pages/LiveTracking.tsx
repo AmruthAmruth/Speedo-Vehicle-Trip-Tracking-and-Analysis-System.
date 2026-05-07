@@ -7,10 +7,11 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HistoryIcon from '@mui/icons-material/History';
+import SensorsIcon from '@mui/icons-material/Sensors';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import {
     Dialog,
-    DialogTitle,
-    DialogContent,
     Typography,
     IconButton,
     Box,
@@ -28,7 +29,6 @@ const LiveTracking: React.FC = () => {
 
     useEffect(() => {
         loadTrips();
-        // Poll for updates every 30 seconds
         const interval = setInterval(loadTrips, 30000);
         return () => clearInterval(interval);
     }, []);
@@ -38,17 +38,15 @@ const LiveTracking: React.FC = () => {
             const response = await tripApi.getUserTrips();
             const allTrips = response.trips;
 
-            // Sort by start time descending
             const sortedTrips = [...allTrips].sort((a, b) =>
                 new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
             );
 
-            // Separate active and previous live/simulation trips
             const active = sortedTrips.filter(t => t.isActive);
             const previous = sortedTrips.filter(t =>
                 !t.isActive &&
                 (t.metadata?.source === 'simulation' || t.metadata?.source === 'mobile')
-            ).slice(0, 10); // Limit to last 10
+            ).slice(0, 5); // Reduced to 5 for cleanliness
 
             setActiveTrips(active);
             setPreviousLiveTrips(previous);
@@ -65,358 +63,481 @@ const LiveTracking: React.FC = () => {
 
     const trackingUrl = `${window.location.origin}/dashboard/track/new`;
 
-    const renderTripCard = (trip: Trip, isLive: boolean = false) => (
+    const renderTripCard = (trip: Trip) => (
         <div
             key={trip._id}
-            className="dashboard-card"
-            style={{
-                borderLeft: `4px solid ${isLive ? '#10b981' : '#6366f1'}`,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                cursor: 'pointer',
-                position: 'relative',
-                overflow: 'hidden'
-            }}
+            className="clean-trip-card"
             onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
-            onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-6px)';
-                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-            }}
         >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.01em' }}>{trip.name}</h4>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
-                        {isLive ? `Started ${formatDate(trip.startTime)}` : `Tracked on ${new Date(trip.startTime).toLocaleDateString()}`}
-                    </p>
+            <div className="card-top">
+                <div className="trip-info">
+                    <span className="live-pill">LIVE</span>
+                    <h4 className="trip-name">{trip.name}</h4>
+                    <p className="device-name">{trip.metadata?.deviceName || 'Primary Device'}</p>
                 </div>
-                <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    background: isLive ? '#ecfdf5' : '#f5f3ff', 
-                    borderRadius: '12px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                }}>
-                    {isLive ? (
-                        <GpsFixedIcon style={{ color: '#10b981', fontSize: 20, animation: 'pulse-green 2s infinite' }} />
-                    ) : (
-                        <PlayArrowIcon style={{ color: '#6366f1', fontSize: 20 }} />
-                    )}
+                <div className="trip-icon">
+                    <DirectionsCarIcon sx={{ fontSize: 20, color: '#94a3b8' }} />
+                </div>
+            </div>
+            
+            <div className="card-details">
+                <div className="detail-item">
+                    <span className="label">Started</span>
+                    <span className="value">{new Date(trip.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div className="detail-item">
+                    <span className="label">Mode</span>
+                    <span className="value">{trip.metadata?.source === 'simulation' ? 'Simulation' : 'Live GPS'}</span>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                <div style={{ flex: 1, background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                    <p style={{ margin: 0, fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>Device</p>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 700, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {trip.metadata?.deviceName || (trip.metadata?.source === 'simulation' ? 'System Engine' : 'Mobile Web')}
-                    </p>
-                </div>
-                <div style={{ flex: 1, background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                    <p style={{ margin: 0, fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>Mode</p>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 700, color: '#334155' }}>
-                        {trip.metadata?.source === 'simulation' ? 'Simulation' : 'Live GPS'}
-                    </p>
-                </div>
+            <div className="card-action">
+                <span>View Real-time Feed</span>
+                <ArrowForwardIosIcon sx={{ fontSize: 12 }} />
             </div>
-
-            <button
-                className="btn-primary"
-                style={{
-                    width: '100%',
-                    justifyContent: 'center',
-                    borderRadius: '12px',
-                    padding: '10px',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    background: isLive ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                    boxShadow: isLive ? '0 4px 12px rgba(16, 185, 129, 0.2)' : '0 4px 12px rgba(99, 102, 241, 0.2)',
-                    border: 'none',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}
-            >
-                {isLive ? <><GpsFixedIcon style={{ fontSize: 16 }} /> Monitor Live</> : <><PlayArrowIcon style={{ fontSize: 16 }} /> View Replay</>}
-            </button>
         </div>
     );
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-                <div className="spinner" style={{ width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            <div className="loading-state">
+                <div className="minimal-spinner"></div>
             </div>
         );
     }
 
     return (
-        <div className="live-tracking-container" style={{ animation: 'fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                <div>
-                    <h2 style={{ fontSize: '32px', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.03em' }}>Fleet Monitoring</h2>
-                    <p style={{ color: '#64748b', fontSize: '16px', margin: '6px 0 0 0', fontWeight: 500 }}>Real-time telemetry and operational intelligence</p>
+        <div className="live-tracking-minimal">
+            {/* Header */}
+            <header className="minimal-header">
+                <div className="title-section">
+                    <h1>Live Tracking</h1>
+                    <p>Monitor your fleet's active sessions in real-time.</p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#ecfdf5', padding: '6px 16px', borderRadius: '30px', border: '1px solid #d1fae5', marginBottom: '8px' }}>
-                            <span style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', animation: 'pulse-green 2s infinite' }}></span>
-                            <span style={{ color: '#065f46', fontSize: '12px', fontWeight: 800, letterSpacing: '0.02em' }}>NETWORK ACTIVE</span>
-                        </div>
-                    </div>
-                    <button
-                        className="btn-primary"
-                        onClick={handleStartLiveTracking}
-                        style={{
-                            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                            padding: '14px 28px',
-                            borderRadius: '16px',
-                            fontWeight: 800,
-                            fontSize: '15px',
-                            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            border: 'none',
-                            color: 'white',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    >
-                        <GpsFixedIcon style={{ fontSize: 20 }} /> Start New Tracking
-                    </button>
-                </div>
-            </div>
+                <button className="minimal-btn-primary" onClick={handleStartLiveTracking}>
+                    <GpsFixedIcon sx={{ fontSize: 18 }} />
+                    <span>Start New Session</span>
+                </button>
+            </header>
 
-            {/* Active Fleet Section */}
-            <div style={{ marginBottom: '56px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                    <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
-                        <GpsFixedIcon style={{ color: '#10b981', fontSize: 24 }} />
+            <main className="minimal-content">
+                {/* Active Section */}
+                <section className="minimal-section">
+                    <div className="section-title-bar">
+                        <h2>Active Vehicles</h2>
+                        <span className="count-badge">{activeTrips.length}</span>
                     </div>
-                    <div>
-                        <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em' }}>Active Fleet</h3>
-                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{activeTrips.length} vehicles currently transmitting</p>
-                    </div>
-                </div>
 
-                {activeTrips.length === 0 ? (
-                    <div className="dashboard-card" style={{ 
-                        textAlign: 'center', 
-                        padding: '80px 20px', 
-                        background: 'linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%)', 
-                        border: '2px dashed #e2e8f0',
-                        borderRadius: '24px'
-                    }}>
-                        <div style={{ 
-                            display: 'inline-flex', 
-                            padding: '32px', 
-                            background: 'white', 
-                            borderRadius: '24px', 
-                            marginBottom: '24px', 
-                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)',
-                            border: '1px solid #f1f5f9'
-                        }}>
-                            <DirectionsCarIcon style={{ fontSize: 48, color: '#cbd5e1' }} />
+                    {activeTrips.length === 0 ? (
+                        <div className="minimal-empty-state">
+                            <div className="empty-icon-box">
+                                <SensorsIcon sx={{ fontSize: 32, color: '#e2e8f0' }} />
+                            </div>
+                            <p>No active sessions found. Start tracking to see live data.</p>
+                            <button className="text-btn" onClick={handleStartLiveTracking}>Initiate Tracking</button>
                         </div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#334155' }}>Radar Clear</h3>
-                        <p style={{ color: '#64748b', maxWidth: '400px', margin: '12px auto 32px', fontSize: '15px', lineHeight: 1.6 }}>
-                            There are no active tracking sessions at the moment. Scan the QR code to link a mobile device or initiate a system simulation.
-                        </p>
-                        <button 
-                            onClick={handleStartLiveTracking}
-                            style={{ 
-                                background: 'white', 
-                                border: '1px solid #e2e8f0', 
-                                padding: '10px 24px', 
-                                borderRadius: '12px', 
-                                fontWeight: 700, 
-                                color: '#475569',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                        >
-                            Get Started
-                        </button>
-                    </div>
-                ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
-                        {activeTrips.map(trip => renderTripCard(trip, true))}
-                    </div>
+                    ) : (
+                        <div className="minimal-grid">
+                            {activeTrips.map(trip => renderTripCard(trip))}
+                        </div>
+                    )}
+                </section>
+
+                {/* History Section - Very Subtle */}
+                {previousLiveTrips.length > 0 && (
+                    <section className="minimal-section history">
+                        <div className="section-title-bar">
+                            <h2>Recent Activity</h2>
+                        </div>
+                        <div className="minimal-list">
+                            {previousLiveTrips.map((trip) => (
+                                <div key={trip._id} className="list-item" onClick={() => navigate(`/dashboard/trips/${trip._id}`)}>
+                                    <div className="item-main">
+                                        <div className="item-icon">
+                                            <HistoryIcon sx={{ fontSize: 18, color: '#94a3b8' }} />
+                                        </div>
+                                        <div className="item-text">
+                                            <span className="item-title">{trip.name}</span>
+                                            <span className="item-subtitle">{trip.metadata?.deviceName || 'Mobile'} • {new Date(trip.startTime).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className="item-meta">
+                                        <span className="item-stat">{(trip.totalDistance || 0).toFixed(1)} km</span>
+                                        <ArrowForwardIosIcon sx={{ fontSize: 12, color: '#cbd5e1' }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
                 )}
-            </div>
+            </main>
 
-            {/* Recently Tracked Section - Table View */}
-            <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                    <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
-                        <PlayArrowIcon style={{ color: '#6366f1', fontSize: 24 }} />
-                    </div>
-                    <div>
-                        <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em' }}>Operations History</h3>
-                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>Logs from the last 10 sessions</p>
-                    </div>
-                </div>
-
-                {previousLiveTrips.length === 0 ? (
-                    <div style={{ padding: '60px', textAlign: 'center', background: '#f8fafc', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
-                        <p style={{ color: '#64748b', margin: 0, fontWeight: 500 }}>No historical data available for this view.</p>
-                    </div>
-                ) : (
-                    <div className="dashboard-card" style={{ padding: '0', overflow: 'hidden', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                                        <th style={{ padding: '18px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Trip / Device</th>
-                                        <th style={{ padding: '18px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Date</th>
-                                        <th style={{ padding: '18px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Metrics</th>
-                                        <th style={{ padding: '18px 24px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Source</th>
-                                        <th style={{ padding: '18px 24px', textAlign: 'right', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {previousLiveTrips.map((trip) => (
-                                        <tr
-                                            key={trip._id}
-                                            style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.2s' }}
-                                            className="hover:bg-slate-50"
-                                            onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
-                                        >
-                                            <td style={{ padding: '18px 24px' }}>
-                                                <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '15px' }}>{trip.name}</div>
-                                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px', fontWeight: 600 }}>{trip.metadata?.deviceName || 'Standard Device'}</div>
-                                            </td>
-                                            <td style={{ padding: '18px 24px', color: '#64748b', fontSize: '14px', fontWeight: 500 }}>
-                                                {new Date(trip.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                            </td>
-                                            <td style={{ padding: '18px 24px' }}>
-                                                <div style={{ color: '#334155', fontSize: '14px', fontWeight: 700 }}>{(trip.totalDistance || 0).toFixed(2)} km</div>
-                                                <div style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 500 }}>{formatDuration(calculateTripDuration(trip.startTime, trip.endTime))}</div>
-                                            </td>
-                                            <td style={{ padding: '18px 24px' }}>
-                                                <span style={{
-                                                    padding: '4px 12px',
-                                                    borderRadius: '8px',
-                                                    fontSize: '10px',
-                                                    fontWeight: 900,
-                                                    letterSpacing: '0.02em',
-                                                    background: trip.metadata?.source === 'simulation' ? '#f5f3ff' : '#eff6ff',
-                                                    color: trip.metadata?.source === 'simulation' ? '#7c3aed' : '#2563eb',
-                                                    border: `1px solid ${trip.metadata?.source === 'simulation' ? '#ddd6fe' : '#dbeafe'}`
-                                                }}>
-                                                    {trip.metadata?.source === 'simulation' ? 'SIMULATION' : 'LIVE FEED'}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '18px 24px', textAlign: 'right' }}>
-                                                <button
-                                                    style={{ 
-                                                        padding: '8px 16px', 
-                                                        fontSize: '13px', 
-                                                        fontWeight: 700, 
-                                                        borderRadius: '10px', 
-                                                        background: 'white', 
-                                                        border: '1px solid #e2e8f0', 
-                                                        color: '#475569',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/dashboard/trips/${trip._id}`);
-                                                    }}
-                                                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#94a3b8'; e.currentTarget.style.color = '#1e293b'; }}
-                                                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#475569'; }}
-                                                >
-                                                    Analysis
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <style>{`
-                @keyframes pulse-green {
-                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-                    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
-
-            {/* QR Code Handshake Modal */}
+            {/* Clean QR Modal */}
             <Dialog
                 open={qrModalOpen}
                 onClose={() => setQrModalOpen(false)}
                 PaperProps={{
-                    sx: { borderRadius: 6, p: 1, maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }
+                    sx: { 
+                        borderRadius: '20px', 
+                        maxWidth: '400px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                        border: '1px solid #f1f5f9'
+                    }
                 }}
             >
-                <DialogTitle sx={{ m: 0, p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h5" fontWeight="900" sx={{ letterSpacing: '-0.02em', color: '#0f172a' }}>Connect Mobile</Typography>
-                    <IconButton onClick={() => setQrModalOpen(false)} sx={{ bgcolor: '#f8fafc' }}>
-                        <CloseIcon />
-                    </IconButton>
-                </DialogTitle>
-                <DialogContent sx={{ px: 3, pb: 4 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                        <Box sx={{
-                            p: 3,
-                            bgcolor: 'white',
-                            borderRadius: 6,
-                            boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
-                            mb: 4,
-                            border: '1px solid #f1f5f9'
-                        }}>
-                            <QRCodeSVG value={trackingUrl} size={280} level="H" includeMargin />
-                        </Box>
-                        
-                        <div style={{ background: '#f0fdf4', padding: '16px', borderRadius: '16px', border: '1px solid #d1fae5', marginBottom: '24px', textAlign: 'left', width: '100%' }}>
-                            <Typography variant="body2" color="#065f46" fontWeight="800" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <CheckCircleIcon sx={{ fontSize: 18 }} /> LINK ONCE, USE FOREVER
-                            </Typography>
-                            <Typography variant="caption" color="#065f46" sx={{ lineHeight: 1.5, display: 'block' }}>
-                                Scan this QR with your phone to link it as a tracking device. Your phone will <strong>memorize</strong> this connection, allowing you to start future trips with a single click without scanning again.
-                            </Typography>
+                <div className="minimal-modal">
+                    <div className="modal-top">
+                        <h3>Link Device</h3>
+                        <IconButton onClick={() => setQrModalOpen(false)} size="small">
+                            <CloseIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+                    </div>
+                    <div className="modal-body">
+                        <div className="qr-container-minimal">
+                            <QRCodeSVG value={trackingUrl} size={200} level="M" />
                         </div>
-
-                        <Button
-                            variant="contained"
-                            fullWidth
-                            onClick={() => setQrModalOpen(false)}
-                            sx={{ 
-                                borderRadius: 4, 
-                                py: 2, 
-                                fontWeight: '900', 
-                                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                                textTransform: 'none',
-                                fontSize: '16px'
-                            }}
-                        >
-                            Got it, I'm scanning
-                        </Button>
-                    </Box>
-                </DialogContent>
+                        <p className="modal-hint">Scan this code with your mobile device to start a live tracking session.</p>
+                        <button className="minimal-btn-secondary" onClick={() => setQrModalOpen(false)}>Done</button>
+                    </div>
+                </div>
             </Dialog>
+
+            <style>{`
+                .live-tracking-minimal {
+                    padding: 40px;
+                    max-width: 1100px;
+                    margin: 0 auto;
+                    color: #1e293b;
+                }
+
+                /* Header */
+                .minimal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    margin-bottom: 64px;
+                }
+
+                .minimal-header h1 {
+                    font-size: 32px;
+                    font-weight: 700;
+                    margin: 0 0 8px 0;
+                    letter-spacing: -0.02em;
+                }
+
+                .minimal-header p {
+                    color: #64748b;
+                    margin: 0;
+                    font-size: 15px;
+                }
+
+                .minimal-btn-primary {
+                    background: #0f172a;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+
+                .minimal-btn-primary:hover {
+                    background: #1e293b;
+                }
+
+                /* Sections */
+                .minimal-section {
+                    margin-bottom: 56px;
+                }
+
+                .section-title-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                }
+
+                .section-title-bar h2 {
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin: 0;
+                    color: #475569;
+                }
+
+                .count-badge {
+                    background: #f1f5f9;
+                    color: #64748b;
+                    font-size: 12px;
+                    font-weight: 700;
+                    padding: 2px 8px;
+                    border-radius: 6px;
+                }
+
+                /* Grid Cards */
+                .minimal-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                    gap: 24px;
+                }
+
+                .clean-trip-card {
+                    background: white;
+                    border: 1px solid #f1f5f9;
+                    border-radius: 16px;
+                    padding: 24px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .clean-trip-card:hover {
+                    border-color: #e2e8f0;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+                    transform: translateY(-2px);
+                }
+
+                .card-top {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 20px;
+                }
+
+                .live-pill {
+                    display: inline-block;
+                    font-size: 10px;
+                    font-weight: 800;
+                    color: #10b981;
+                    background: #ecfdf5;
+                    padding: 2px 8px;
+                    border-radius: 100px;
+                    margin-bottom: 8px;
+                }
+
+                .trip-name {
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin: 0;
+                }
+
+                .device-name {
+                    font-size: 13px;
+                    color: #94a3b8;
+                    margin: 4px 0 0 0;
+                }
+
+                .card-details {
+                    display: flex;
+                    gap: 24px;
+                    margin-bottom: 20px;
+                    padding-bottom: 20px;
+                    border-bottom: 1px solid #f8fafc;
+                }
+
+                .detail-item {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .detail-item .label {
+                    font-size: 11px;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    font-weight: 700;
+                    letter-spacing: 0.05em;
+                }
+
+                .detail-item .value {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #475569;
+                }
+
+                .card-action {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #6366f1;
+                }
+
+                /* Empty State */
+                .minimal-empty-state {
+                    text-align: center;
+                    padding: 64px 24px;
+                    background: #fbfcfd;
+                    border: 1px dashed #e2e8f0;
+                    border-radius: 20px;
+                }
+
+                .empty-icon-box {
+                    margin-bottom: 16px;
+                }
+
+                .minimal-empty-state p {
+                    color: #94a3b8;
+                    font-size: 14px;
+                    margin-bottom: 20px;
+                }
+
+                .text-btn {
+                    background: none;
+                    border: none;
+                    color: #6366f1;
+                    font-weight: 700;
+                    font-size: 14px;
+                    cursor: pointer;
+                    text-decoration: underline;
+                }
+
+                /* History List */
+                .minimal-list {
+                    background: white;
+                    border: 1px solid #f1f5f9;
+                    border-radius: 16px;
+                    overflow: hidden;
+                }
+
+                .list-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 16px 24px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                    border-bottom: 1px solid #f8fafc;
+                }
+
+                .list-item:last-child {
+                    border-bottom: none;
+                }
+
+                .list-item:hover {
+                    background: #fbfcfd;
+                }
+
+                .item-main {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                }
+
+                .item-icon {
+                    width: 36px;
+                    height: 36px;
+                    background: #f8fafc;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .item-text {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .item-title {
+                    font-size: 15px;
+                    font-weight: 600;
+                }
+
+                .item-subtitle {
+                    font-size: 12px;
+                    color: #94a3b8;
+                }
+
+                .item-meta {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                }
+
+                .item-stat {
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #475569;
+                }
+
+                /* Modal */
+                .minimal-modal {
+                    padding: 32px;
+                }
+
+                .modal-top {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 24px;
+                }
+
+                .modal-top h3 {
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: 700;
+                }
+
+                .modal-body {
+                    text-align: center;
+                }
+
+                .qr-container-minimal {
+                    padding: 16px;
+                    background: white;
+                    border: 1px solid #f1f5f9;
+                    border-radius: 16px;
+                    display: inline-block;
+                    margin-bottom: 24px;
+                }
+
+                .modal-hint {
+                    font-size: 14px;
+                    color: #64748b;
+                    line-height: 1.5;
+                    margin-bottom: 32px;
+                }
+
+                .minimal-btn-secondary {
+                    width: 100%;
+                    padding: 12px;
+                    background: #f1f5f9;
+                    border: none;
+                    border-radius: 10px;
+                    font-weight: 700;
+                    color: #475569;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+
+                .minimal-btn-secondary:hover {
+                    background: #e2e8f0;
+                }
+
+                /* Loading */
+                .loading-state {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 60vh;
+                }
+
+                .minimal-spinner {
+                    width: 32px;
+                    height: 32px;
+                    border: 2px solid #f1f5f9;
+                    border-top: 2px solid #6366f1;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 };
