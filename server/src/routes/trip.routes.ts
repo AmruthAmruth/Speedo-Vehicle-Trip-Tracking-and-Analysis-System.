@@ -27,6 +27,13 @@ tripRouter.post(
   tripController.stopLiveTrip
 );
 
+// HTTP fallback: batch-upload buffered GPS points (used by PWA background sync)
+tripRouter.post(
+  '/:id/batch-locations',
+  authMiddleware,
+  tripController.batchLocations
+);
+
 tripRouter.get(
   '/user',
   authMiddleware,

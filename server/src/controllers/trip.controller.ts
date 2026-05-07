@@ -13,6 +13,7 @@ import {
 } from '../shared/types/errors';
 import { injectable, inject } from 'tsyringe';
 import { SimulationService } from '../services/simulation.service';
+import { IGPSQueueService } from '../interfaces/IGPSQueueService';
 
 @injectable()
 export class TripController {
@@ -20,7 +21,8 @@ export class TripController {
     @inject('ITripUploadService') private _uploadService: ITripUploadService,
     @inject('ITripService') private _tripService: ITripService,
     @inject('IGPSPointRepository') private _gpsRepo: IGPSPointRepository,
-    @inject('SimulationService') private _simulationService: SimulationService
+    @inject('SimulationService') private _simulationService: SimulationService,
+    @inject('IGPSQueueService') private _gpsQueue: IGPSQueueService
   ) { }
 
   startLiveTrip = asyncHandler(async (
@@ -37,6 +39,36 @@ export class TripController {
     res.status(HTTP_STATUS.CREATED).json({
       message: HTTP_MESSAGES.TRIP.LIVE_TRIP_STARTED,
       trip
+    });
+  });
+
+  /** Batch HTTP fallback — accepts an array of GPS points (used by background sync) */
+  batchLocations = asyncHandler(async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    if (!req.user) {
+      throw new UnauthorizedError(HTTP_MESSAGES.AUTH.USER_NOT_AUTHENTICATED);
+    }
+
+    const { id } = req.params;
+    const { points } = req.body;
+
+    if (!Array.isArray(points) || points.length === 0) {
+      throw new BadRequestError('points must be a non-empty array');
+    }
+
+    // Verify trip ownership
+    await this._tripService.getTripById(req.user.userId, id as string);
+
+    // Enqueue every point through the existing GPS queue (same path as socket)
+    for (const point of points) {
+      await this._gpsQueue.addGPSJob(id as string, point);
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      message: `${points.length} points queued successfully`,
+      count: points.length
     });
   });
 

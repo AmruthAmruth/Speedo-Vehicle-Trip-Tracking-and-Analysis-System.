@@ -32,6 +32,21 @@ import { authApi } from '../../../services/authApi';
 import { formatSpeed, formatDuration } from '../../../utils/tripUtils';
 import { toast } from 'react-toastify';
 import { Trip } from '../../../types/trip.types';
+import {
+    bufferGPSPoint,
+    configureServiceWorker,
+    notifyTrackingStarted,
+    notifyTrackingStopped,
+    flushBufferedPoints,
+    countPendingPoints,
+    captureInstallPrompt,
+    triggerInstallPrompt,
+    isInstallPromptAvailable,
+    isRunningAsPWA,
+    isIOS,
+} from '../../../services/backgroundTrackingService';
+
+const SERVER_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000';
 
 const MobileTracker: React.FC = () => {
     const navigate = useNavigate();
@@ -76,6 +91,11 @@ const MobileTracker: React.FC = () => {
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const wakeLockRef = useRef<any>(null);
 
+    // Background tracking state
+    const [bufferedCount, setBufferedCount] = useState(0);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [showInstallBanner, setShowInstallBanner] = useState(false);
+
     // Wake Lock Support
     const requestWakeLock = async () => {
         if ('wakeLock' in navigator) {
@@ -99,18 +119,51 @@ const MobileTracker: React.FC = () => {
         }
     };
 
-    // Handle background/foreground transitions
+    // Handle background/foreground transitions + buffer flush
     useEffect(() => {
         const handleVisibilityChange = async () => {
-            if (document.visibilityState === 'visible' && isTracking) {
-                // Re-acquire wake lock if we come back to foreground
+            if (document.visibilityState === 'visible' && isTracking && activeTripId) {
                 await requestWakeLock();
+                // Flush any locally buffered points back to server
+                const token = localStorage.getItem('accessToken') || '';
+                const flushed = await flushBufferedPoints(activeTripId, SERVER_URL, token);
+                if (flushed > 0) {
+                    toast.success(`📡 Synced ${flushed} buffered GPS points`);
+                    setBufferedCount(0);
+                }
             }
         };
-
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isTracking]);
+    }, [isTracking, activeTripId]);
+
+    // Online/offline detection + SW message listener
+    useEffect(() => {
+        captureInstallPrompt();
+        const onOnline = async () => {
+            setIsOnline(true);
+            if (isTracking && activeTripId) {
+                const token = localStorage.getItem('accessToken') || '';
+                const n = await flushBufferedPoints(activeTripId, SERVER_URL, token);
+                if (n > 0) { toast.success(`📡 Back online — synced ${n} points`); setBufferedCount(0); }
+            }
+        };
+        const onOffline = () => { setIsOnline(false); toast.warn('📶 Offline — GPS points are being buffered locally'); };
+        const onSWMessage = (e: MessageEvent) => {
+            if (e.data?.type === 'SYNC_COMPLETE') {
+                toast.success(`📡 Background sync: ${e.data.count} points delivered`);
+                setBufferedCount(0);
+            }
+        };
+        window.addEventListener('online', onOnline);
+        window.addEventListener('offline', onOffline);
+        navigator.serviceWorker?.addEventListener('message', onSWMessage);
+        return () => {
+            window.removeEventListener('online', onOnline);
+            window.removeEventListener('offline', onOffline);
+            navigator.serviceWorker?.removeEventListener('message', onSWMessage);
+        };
+    }, [isTracking, activeTripId]);
 
     // Bootstrap: check persistence or pairing
     useEffect(() => {
@@ -222,6 +275,14 @@ const MobileTracker: React.FC = () => {
             );
             setActiveTripId(response.trip._id);
             socketService.joinTrip(response.trip._id);
+
+            // Configure service worker with auth info for background sync
+            const token = localStorage.getItem('accessToken') || '';
+            configureServiceWorker(SERVER_URL, token);
+            notifyTrackingStarted(response.trip._id);
+
+            // Show PWA install banner if not already installed
+            if (!isRunningAsPWA() && isInstallPromptAvailable()) setShowInstallBanner(true);
             
             setIsTracking(true);
             setStatus('tracking');
@@ -245,7 +306,14 @@ const MobileTracker: React.FC = () => {
                         ignition: true 
                     };
                     setCurrentPoint({ latitude, longitude, speed: point.speed, timestamp: point.timestamp });
+                    // Always emit via socket
                     socketService.emitLocationUpdate(response.trip._id, point);
+                    // Also buffer locally when offline (background sync fallback)
+                    if (!navigator.onLine) {
+                        bufferGPSPoint(response.trip._id, point).then(() =>
+                            countPendingPoints(response.trip._id).then(setBufferedCount)
+                        );
+                    }
                 },
                 (err) => console.error(`Location Error: ${err.message}`),
                 { 
@@ -265,6 +333,8 @@ const MobileTracker: React.FC = () => {
     const stopTracking = async () => {
         if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
         if (timerRef.current) clearInterval(timerRef.current);
+        notifyTrackingStopped();
+        setShowInstallBanner(false);
         
         // Release wake lock
         await releaseWakeLock();
@@ -363,9 +433,16 @@ const MobileTracker: React.FC = () => {
                             <Box className="tracking-pulse-container"><Box className="tracking-pulse-core"><GpsFixedIcon sx={{ fontSize: 50, color: 'white' }} /></Box></Box>
                             <Typography variant="h6" color="#10b981" fontWeight="800" sx={{ mt: 3 }}>EN ROUTE</Typography>
                             <Box sx={{ mt: 1, display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#ecfdf5', px: 2, py: 0.5, borderRadius: 10, border: '1px solid #10b981' }}>
-                                <Box sx={{ width: 6, height: 6, bgcolor: '#10b981', borderRadius: '50%', animation: 'pulse 1s infinite' }} />
-                                <Typography variant="caption" sx={{ color: '#065f46', fontWeight: 700 }}>Background Tracking Active</Typography>
+                                <Box sx={{ width: 6, height: 6, bgcolor: isOnline ? '#10b981' : '#f59e0b', borderRadius: '50%', animation: 'pulse 1s infinite' }} />
+                                <Typography variant="caption" sx={{ color: '#065f46', fontWeight: 700 }}>
+                                    {isOnline ? 'Background Tracking Active' : `Offline — ${bufferedCount} pts buffered`}
+                                </Typography>
                             </Box>
+                            {isIOS() && (
+                                <Box sx={{ mt: 2, px: 2, py: 1, bgcolor: '#fef3c7', borderRadius: 3, border: '1px solid #f59e0b' }}>
+                                    <Typography variant="caption" sx={{ color: '#92400e', fontWeight: 600 }}>⚠️ iOS: Keep screen on for continuous tracking</Typography>
+                                </Box>
+                            )}
                         </Box>
                     ) : (
                         <Box sx={{ mb: 4 }}>
@@ -397,6 +474,17 @@ const MobileTracker: React.FC = () => {
 
     return (
         <Box sx={{ bgcolor: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {/* PWA Install Banner */}
+            {showInstallBanner && (
+                <Box sx={{ bgcolor: '#6366f1', color: 'white', px: 3, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                    <Typography variant="caption" fontWeight={700}>📲 Install app for reliable background tracking</Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button size="small" variant="contained" sx={{ bgcolor: 'white', color: '#6366f1', fontWeight: 700, fontSize: '0.7rem', py: 0.5, minWidth: 0 }}
+                            onClick={() => triggerInstallPrompt().then(() => setShowInstallBanner(false))}>Install</Button>
+                        <Button size="small" sx={{ color: 'rgba(255,255,255,0.7)', minWidth: 0, fontSize: '0.7rem' }} onClick={() => setShowInstallBanner(false)}>Later</Button>
+                    </Box>
+                </Box>
+            )}
             <Container maxWidth="sm" sx={{ py: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Typography variant="h6" fontWeight="900" sx={{ color: '#0f172a', letterSpacing: '-0.03em' }}>SPEEDO TRACKER</Typography>

@@ -13,5 +13,19 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Register Service Worker for background tracking support -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(function (reg) {
+              console.log('[App] Service Worker registered, scope:', reg.scope);
+            })
+            .catch(function (err) {
+              console.warn('[App] Service Worker registration failed:', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

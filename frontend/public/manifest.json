@@ -1,21 +1,43 @@
 {
   "name": "Speedo Vehicle Tracking",
   "short_name": "Speedo",
-  "description": "Real-time high-precision vehicle tracking and fleet management.",
+  "description": "Real-time high-precision vehicle tracking and fleet management. Track your vehicles even in the background.",
   "start_url": "/dashboard/track/new",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "categories": ["navigation", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/vite.svg",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
       "src": "/vite.svg",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Tracking",
+      "short_name": "Track",
+      "description": "Open the mobile tracker to start a new trip",
+      "url": "/dashboard/track/new",
+      "icons": [{ "src": "/vite.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Live Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open fleet live tracking dashboard",
+      "url": "/dashboard/live",
+      "icons": [{ "src": "/vite.svg", "sizes": "96x96" }]
     }
   ]
 }
