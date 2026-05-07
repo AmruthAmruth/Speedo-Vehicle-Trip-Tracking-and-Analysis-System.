@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { 
     Box, 
     Typography, 
@@ -36,8 +36,9 @@ import { Trip } from '../../../types/trip.types';
 const MobileTracker: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { token: pathToken } = useParams<{ token: string }>();
     const queryParams = new URLSearchParams(location.search);
-    const pairingToken = queryParams.get('token');
+    const pairingToken = pathToken || queryParams.get('token');
     
     // UI State
     const [view, setView] = useState<'track' | 'overview'>('track');
@@ -45,7 +46,15 @@ const MobileTracker: React.FC = () => {
     
     // Device identity (Persistent)
     const [deviceName, setDeviceName] = useState<string>(localStorage.getItem('speedo_device_name') || '');
-    const [deviceId] = useState<string>(localStorage.getItem('speedo_device_id') || crypto.randomUUID());
+    const [deviceId] = useState<string>(() => {
+        const saved = localStorage.getItem('speedo_device_id');
+        if (saved) return saved;
+        const newId = (typeof crypto.randomUUID === 'function') 
+            ? crypto.randomUUID() 
+            : Math.random().toString(36).substring(2) + Date.now().toString(36);
+        localStorage.setItem('speedo_device_id', newId);
+        return newId;
+    });
     
     // Tracking State
     const [tripName, setTripName] = useState<string>('');
@@ -71,6 +80,8 @@ const MobileTracker: React.FC = () => {
         const bootstrap = async () => {
             const secret = localStorage.getItem('speedo_device_secret');
             
+            console.log("Tracker Bootstrap:", { secret: !!secret, pairingToken: !!pairingToken });
+
             // 1. If we have a secret, try to auto-authenticate
             if (secret) {
                 try {
@@ -83,11 +94,13 @@ const MobileTracker: React.FC = () => {
                 } catch (err) {
                     console.error("Persistence validation failed:", err);
                     localStorage.removeItem('speedo_device_secret');
+                    // If secret fails, check if we just scanned a NEW token
                     setAppState(pairingToken ? 'pairing' : 'error');
                 }
             } 
             // 2. If no secret but we have a pairing token, go to pairing
             else if (pairingToken) {
+                console.log("Switching to pairing mode with token:", pairingToken);
                 setAppState('pairing');
             } 
             // 3. Otherwise, we need a QR scan

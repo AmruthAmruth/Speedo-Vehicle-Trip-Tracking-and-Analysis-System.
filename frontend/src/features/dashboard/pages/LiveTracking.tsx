@@ -64,7 +64,7 @@ const LiveTracking: React.FC = () => {
     };
 
     const trackingUrl = pairingToken 
-        ? `${window.location.origin}/dashboard/track/pair?token=${pairingToken}`
+        ? `${window.location.origin}/dashboard/track/p/${pairingToken}`
         : `${window.location.origin}/dashboard/track/new`;
 
     const renderTripCard = (trip: Trip) => (

@@ -40,8 +40,8 @@ const App = () => {
         } />
         
         {/* Public Tracking Routes (Accessible via QR Code) */}
-        <Route path={`dashboard/track/:id`} element={<MobileTracker />} />
-        <Route path={`dashboard/track/pair`} element={<MobileTracker />} />
+        <Route path="/dashboard/track/p/:token" element={<MobileTracker />} />
+        <Route path="/dashboard/track/:id" element={<MobileTracker />} />
 
         {/* Protected Dashboard Routes */}
         <Route
