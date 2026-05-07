@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tripApi } from '../../../services/tripApi';
+import { authApi } from '../../../services/authApi';
 import { Trip } from '../../../types/trip.types';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
@@ -19,6 +20,7 @@ const LiveTracking: React.FC = () => {
     const [previousLiveTrips, setPreviousLiveTrips] = useState<Trip[]>([]);
     const [loading, setLoading] = useState(true);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const [pairingToken, setPairingToken] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -40,7 +42,7 @@ const LiveTracking: React.FC = () => {
             const previous = sortedTrips.filter(t =>
                 !t.isActive &&
                 (t.metadata?.source === 'simulation' || t.metadata?.source === 'mobile')
-            ).slice(0, 5); // Reduced to 5 for cleanliness
+            ).slice(0, 5); 
 
             setActiveTrips(active);
             setPreviousLiveTrips(previous);
@@ -51,11 +53,19 @@ const LiveTracking: React.FC = () => {
         }
     };
 
-    const handleStartLiveTracking = () => {
-        setQrModalOpen(true);
+    const handleStartLiveTracking = async () => {
+        try {
+            const { pairingToken } = await authApi.getPairingToken();
+            setPairingToken(pairingToken);
+            setQrModalOpen(true);
+        } catch (err) {
+            console.error('Failed to get pairing token:', err);
+        }
     };
 
-    const trackingUrl = `${window.location.origin}/dashboard/track/new`;
+    const trackingUrl = pairingToken 
+        ? `${window.location.origin}/dashboard/track/pair?token=${pairingToken}`
+        : `${window.location.origin}/dashboard/track/new`;
 
     const renderTripCard = (trip: Trip) => (
         <div

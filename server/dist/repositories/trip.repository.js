@@ -27,6 +27,10 @@ let TripRepository = class TripRepository {
     async update(id, data, session) {
         return Trip_model_1.TripModel.findByIdAndUpdate(id, data, { new: true, session }).lean();
     }
+    async delete(id, session) {
+        const result = await Trip_model_1.TripModel.deleteOne({ _id: id }, { session });
+        return result.deletedCount > 0;
+    }
 };
 exports.TripRepository = TripRepository;
 exports.TripRepository = TripRepository = __decorate([

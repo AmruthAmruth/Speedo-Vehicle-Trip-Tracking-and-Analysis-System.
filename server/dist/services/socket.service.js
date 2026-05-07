@@ -25,9 +25,17 @@ let SocketService = class SocketService {
             }
         });
         // Configure Redis Adapter for horizontal scaling
-        const pubClient = (0, redis_1.createClient)({
-            url: `redis://${redis_config_1.redisConfig.password ? `:${redis_config_1.redisConfig.password}@` : ''}${redis_config_1.redisConfig.host}:${redis_config_1.redisConfig.port}`
-        });
+        const protocol = redis_config_1.redisConfig.tls ? 'rediss' : 'redis';
+        const clientOptions = {
+            url: `${protocol}://${redis_config_1.redisConfig.password ? `:${redis_config_1.redisConfig.password}@` : ''}${redis_config_1.redisConfig.host}:${redis_config_1.redisConfig.port}`,
+        };
+        if (redis_config_1.redisConfig.tls) {
+            clientOptions.socket = {
+                tls: true,
+                rejectUnauthorized: false
+            };
+        }
+        const pubClient = (0, redis_1.createClient)(clientOptions);
         const subClient = pubClient.duplicate();
         Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
             this._io?.adapter((0, redis_adapter_1.createAdapter)(pubClient, subClient));

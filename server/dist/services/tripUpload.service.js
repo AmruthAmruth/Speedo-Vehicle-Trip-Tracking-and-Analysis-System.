@@ -27,7 +27,7 @@ let TripUploadService = class TripUploadService {
         this._gpsRepo = _gpsRepo;
         this._csvService = _csvService;
     }
-    async uploadTrip(userId, fileBuffer) {
+    async uploadTrip(userId, fileBuffer, name) {
         // 1. Parse CSV
         const rawRows = await this._csvService.parseCSV(fileBuffer);
         // 2. Sort rows chronologically (FIX: Sorting issue)
@@ -43,6 +43,7 @@ let TripUploadService = class TripUploadService {
             // 4. Create Trip
             const trip = await this._tripRepo.create({
                 userId: new mongoose_1.Types.ObjectId(userId),
+                name: name || 'Uploaded Trip',
                 startTime: new Date(rows[0].timestamp),
                 endTime: new Date(rows[rows.length - 1].timestamp)
             }, session);

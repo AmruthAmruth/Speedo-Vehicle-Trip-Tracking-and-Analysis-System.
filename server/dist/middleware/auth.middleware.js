@@ -26,7 +26,12 @@ const authMiddleware = (req, res, next) => {
             next(error);
         }
         else {
-            next(new errors_1.UnauthorizedError(http_constants_1.HTTP_MESSAGES.AUTH.INVALID_OR_EXPIRED_TOKEN));
+            const jwtError = error;
+            // Provide more specific message if it's an expiration issue
+            const message = jwtError.name === 'TokenExpiredError'
+                ? 'Your session has expired. Please login again.'
+                : http_constants_1.HTTP_MESSAGES.AUTH.INVALID_OR_EXPIRED_TOKEN;
+            next(new errors_1.UnauthorizedError(message));
         }
     }
 };

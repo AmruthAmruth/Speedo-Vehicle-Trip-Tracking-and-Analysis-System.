@@ -39,8 +39,9 @@ const App = () => {
           </GuestRoute>
         } />
         
-        {/* Public Tracking Route (Accessible via QR Code) */}
-        <Route path={`dashboard/${APP_ROUTES.DASHBOARD.MOBILE_TRACKER}`} element={<MobileTracker />} />
+        {/* Public Tracking Routes (Accessible via QR Code) */}
+        <Route path={`dashboard/track/:id`} element={<MobileTracker />} />
+        <Route path={`dashboard/track/pair`} element={<MobileTracker />} />
 
         {/* Protected Dashboard Routes */}
         <Route

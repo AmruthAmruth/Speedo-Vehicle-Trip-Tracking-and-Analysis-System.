@@ -13,8 +13,20 @@ let UserRepository = class UserRepository {
     async findByEmail(email) {
         return User_model_1.UserModel.findOne({ email });
     }
+    async findById(id) {
+        return User_model_1.UserModel.findById(id);
+    }
+    async findByDevice(deviceId, deviceToken) {
+        return User_model_1.UserModel.findOne({
+            'devices.deviceId': deviceId,
+            'devices.deviceToken': deviceToken
+        });
+    }
     async create(user) {
         return User_model_1.UserModel.create(user);
+    }
+    async update(id, user) {
+        return User_model_1.UserModel.findByIdAndUpdate(id, user, { new: true });
     }
 };
 exports.UserRepository = UserRepository;

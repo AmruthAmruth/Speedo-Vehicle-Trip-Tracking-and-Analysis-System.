@@ -31,10 +31,18 @@ export interface RegisterDeviceDTO {
     deviceName: string;
 }
 
+export interface DeviceAuthResponse {
+    deviceToken: string;
+    deviceSecret: string;
+}
+
 export interface IAuthService {
     register(data: RegisterDTO): Promise<RegisterResponse>;
     login(data: LoginDTO): Promise<AuthResponse>;
     refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }>;
-    registerDevice(data: RegisterDeviceDTO): Promise<{ deviceToken: string }>;
-    validateDeviceToken(deviceId: string, deviceToken: string): Promise<AuthResponse>;
+    
+    // New Persistent Device Flow
+    generatePairingToken(userId: string): Promise<{ pairingToken: string }>;
+    linkDevice(pairingToken: string, deviceId: string, deviceName: string): Promise<DeviceAuthResponse>;
+    validateDeviceSecret(deviceId: string, deviceSecret: string): Promise<AuthResponse>;
 }

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { IAuthService } from '../interfaces/IAuthService';
 import { HTTP_STATUS } from '../shared/constants/http.constants';
 import { asyncHandler } from '../shared/utils/asyncHandler';
@@ -24,14 +25,25 @@ export class AuthController {
     res.status(HTTP_STATUS.OK).json(result);
   });
 
-  registerDevice = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this._authService.registerDevice(req.body);
+  getPairingToken = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: 'User not authenticated' });
+      return;
+    }
+    const result = await this._authService.generatePairingToken(userId);
     res.status(HTTP_STATUS.OK).json(result);
   });
 
-  validateDevice = asyncHandler(async (req: Request, res: Response) => {
-    const { deviceId, deviceToken } = req.body;
-    const result = await this._authService.validateDeviceToken(deviceId, deviceToken);
+  linkDevice = asyncHandler(async (req: Request, res: Response) => {
+    const { pairingToken, deviceId, deviceName } = req.body;
+    const result = await this._authService.linkDevice(pairingToken, deviceId, deviceName);
+    res.status(HTTP_STATUS.OK).json(result);
+  });
+
+  validateDeviceSecret = asyncHandler(async (req: Request, res: Response) => {
+    const { deviceId, deviceSecret } = req.body;
+    const result = await this._authService.validateDeviceSecret(deviceId, deviceSecret);
     res.status(HTTP_STATUS.OK).json(result);
   });
 }

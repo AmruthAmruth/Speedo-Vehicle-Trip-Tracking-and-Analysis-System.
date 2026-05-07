@@ -13,13 +13,18 @@ export const authApi = {
         return response.data;
     },
 
-    registerDevice: async (data: { userId: string; deviceId: string; deviceName: string }): Promise<{ deviceToken: string }> => {
-        const response = await api.post<{ deviceToken: string }>('/auth/devices/register', data);
+    getPairingToken: async (): Promise<{ pairingToken: string }> => {
+        const response = await api.get<{ pairingToken: string }>('/auth/devices/pair');
         return response.data;
     },
 
-    validateDevice: async (data: { deviceId: string; deviceToken: string }): Promise<LoginResponse> => {
-        const response = await api.post<LoginResponse>('/auth/devices/validate', data);
+    linkDevice: async (data: { pairingToken: string; deviceId: string; deviceName: string }): Promise<{ deviceToken: string; deviceSecret: string }> => {
+        const response = await api.post<{ deviceToken: string; deviceSecret: string }>('/auth/devices/link', data);
+        return response.data;
+    },
+
+    validateDeviceSecret: async (data: { deviceId: string; deviceSecret: string }): Promise<LoginResponse> => {
+        const response = await api.post<LoginResponse>('/auth/devices/validate-secret', data);
         return response.data;
     },
 };

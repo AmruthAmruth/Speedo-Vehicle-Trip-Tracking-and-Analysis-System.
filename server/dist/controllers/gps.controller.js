@@ -25,14 +25,14 @@ let GPSController = class GPSController {
             // 1. Quick Validation
             if (!gpsPoint.latitude || !gpsPoint.longitude) {
                 return res.status(http_constants_1.HTTP_STATUS.BAD_REQUEST).json({
-                    message: 'Invalid GPS point data',
+                    message: http_constants_1.HTTP_MESSAGES.GPS.INVALID_DATA,
                 });
             }
             // 2. Add to Queue (Producer)
             await this._queueService.addGPSJob(tripId, gpsPoint);
             // 3. Respond immediately (202 Accepted)
             res.status(http_constants_1.HTTP_STATUS.ACCEPTED).json({
-                message: 'GPS point accepted for processing',
+                message: http_constants_1.HTTP_MESSAGES.GPS.ACCEPTED,
                 tripId,
             });
         });

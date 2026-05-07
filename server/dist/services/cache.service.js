@@ -22,6 +22,7 @@ let RedisCacheService = class RedisCacheService {
             host: redis_config_1.redisConfig.host,
             port: redis_config_1.redisConfig.port,
             password: redis_config_1.redisConfig.password,
+            tls: redis_config_1.redisConfig.tls ? {} : undefined,
         });
         this.redis.on('connect', () => {
             console.log('🚀 Redis Cache Service Connected');

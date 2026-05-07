@@ -2,6 +2,7 @@ import { container } from 'tsyringe';
 import { UserRepository } from '../repositories/user.repository';
 import { TripRepository } from '../repositories/trip.repository';
 import { GPSPointRepository } from '../repositories/gpspoint.repository';
+import { DeviceRepository } from '../repositories/device.repository';
 import { AuthService } from '../services/auth.service';
 import { TripUploadService } from '../services/tripUpload.service';
 import { CsvService } from '../services/csv.service';
@@ -16,6 +17,7 @@ import { GPSWorker } from '../workers/gps.worker';
 container.register('IUserRepository', { useClass: UserRepository });
 container.register('ITripRepository', { useClass: TripRepository });
 container.register('IGPSPointRepository', { useClass: GPSPointRepository });
+container.register('IDeviceRepository', { useClass: DeviceRepository });
 
 
 container.register('IAuthService', { useClass: AuthService });

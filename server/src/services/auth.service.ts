@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { IUserRepository } from '../interfaces/IUserRepository';
-import { IAuthService, RegisterDTO, LoginDTO, AuthResponse, RegisterResponse, RegisterDeviceDTO } from '../interfaces/IAuthService';
+import { IDeviceRepository } from '../interfaces/IDeviceRepository';
+import { ICacheService } from '../interfaces/ICacheService';
+import { IAuthService, RegisterDTO, LoginDTO, AuthResponse, RegisterResponse, DeviceAuthResponse } from '../interfaces/IAuthService';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../shared/utils/jwt.util';
 import { comparePassword, hashPassword } from '../shared/utils/password.util';
 import { HTTP_MESSAGES } from '../shared/constants/http.constants';
@@ -9,7 +11,11 @@ import { injectable, inject } from 'tsyringe';
 
 @injectable()
 export class AuthService implements IAuthService {
-  constructor(@inject('IUserRepository') private _userRepository: IUserRepository) { }
+  constructor(
+    @inject('IUserRepository') private _userRepository: IUserRepository,
+    @inject('IDeviceRepository') private _deviceRepository: IDeviceRepository,
+    @inject('ICacheService') private _cacheService: ICacheService
+  ) { }
 
   async register(data: RegisterDTO): Promise<RegisterResponse> {
     const existingUser = await this._userRepository.findByEmail(data.email);
@@ -92,49 +98,79 @@ export class AuthService implements IAuthService {
     }
   }
 
-  async registerDevice(data: RegisterDeviceDTO): Promise<{ deviceToken: string }> {
-    const user = await this._userRepository.findById(data.userId);
-    if (!user) {
-      throw new BadRequestError('User not found');
+  // Persistent Device Flow
+  async generatePairingToken(userId: string): Promise<{ pairingToken: string }> {
+    const pairingToken = crypto.randomBytes(16).toString('hex');
+    // Store in cache for 5 minutes
+    await this._cacheService.set(`pairing:${pairingToken}`, userId, 300);
+    return { pairingToken };
+  }
+
+  async linkDevice(pairingToken: string, deviceId: string, deviceName: string): Promise<DeviceAuthResponse> {
+    const userId = await this._cacheService.get<string>(`pairing:${pairingToken}`);
+    
+    if (!userId) {
+      throw new UnauthorizedError('Pairing token expired or invalid');
     }
 
-    // Check if device already registered
-    const existingDevice = user.devices.find(d => d.deviceId === data.deviceId);
-    const deviceToken = crypto.randomBytes(32).toString('hex');
-
-    if (existingDevice) {
-      existingDevice.deviceToken = deviceToken;
-      existingDevice.deviceName = data.deviceName;
-      existingDevice.lastUsed = new Date();
+    const deviceSecret = crypto.randomBytes(32).toString('hex');
+    
+    // Check if device already exists, update or create
+    let device = await this._deviceRepository.findByDeviceId(deviceId);
+    
+    if (device) {
+      await this._deviceRepository.update(deviceId, {
+        deviceName,
+        deviceSecret,
+        owner: userId as any,
+        status: 'active',
+        lastSeen: new Date()
+      });
     } else {
-      user.devices.push({
-        deviceId: data.deviceId,
-        deviceToken,
-        deviceName: data.deviceName,
-        lastUsed: new Date()
+      await this._deviceRepository.create({
+        deviceId,
+        deviceName,
+        deviceSecret,
+        owner: userId as any,
+        status: 'active',
+        lastSeen: new Date()
       });
     }
 
-    await this._userRepository.update(data.userId, { devices: user.devices });
-    return { deviceToken };
+    const user = await this._userRepository.findById(userId);
+    if (!user) {
+      throw new UnauthorizedError('User not found');
+    }
+
+    // Clean up pairing token
+    await this._cacheService.del(`pairing:${pairingToken}`);
+
+    // Generate a temporary JWT for the initial session
+    const payload = { userId, email: user.email, deviceId };
+    const deviceToken = generateAccessToken(payload);
+
+    return { deviceToken, deviceSecret };
   }
 
-  async validateDeviceToken(deviceId: string, deviceToken: string): Promise<AuthResponse> {
-    const user = await this._userRepository.findByDevice(deviceId, deviceToken);
+  async validateDeviceSecret(deviceId: string, deviceSecret: string): Promise<AuthResponse> {
+    const device = await this._deviceRepository.findByDeviceId(deviceId);
 
+    if (!device || device.deviceSecret !== deviceSecret) {
+      throw new UnauthorizedError('Device not recognized or secret invalid');
+    }
+
+    const user = await this._userRepository.findById(device.owner.toString());
     if (!user) {
-      throw new UnauthorizedError('Invalid device token or unauthorized device');
+      throw new UnauthorizedError('Device owner not found');
     }
 
-    const device = user.devices.find(d => d.deviceId === deviceId);
-    if (device) {
-      device.lastUsed = new Date();
-      await this._userRepository.update(user._id.toString(), { devices: user.devices });
-    }
+    // Update last seen
+    await this._deviceRepository.update(deviceId, { lastSeen: new Date() });
 
     const payload = {
       userId: user._id.toString(),
-      email: user.email
+      email: user.email,
+      deviceId: deviceId
     };
 
     const accessToken = generateAccessToken(payload);

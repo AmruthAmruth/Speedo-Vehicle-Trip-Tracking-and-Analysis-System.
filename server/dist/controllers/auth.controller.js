@@ -27,6 +27,30 @@ let AuthController = class AuthController {
             const result = await this._authService.login(req.body);
             res.status(http_constants_1.HTTP_STATUS.OK).json(result);
         });
+        this.refresh = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+            const { refreshToken } = req.body;
+            const result = await this._authService.refresh(refreshToken);
+            res.status(http_constants_1.HTTP_STATUS.OK).json(result);
+        });
+        this.getPairingToken = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+            const userId = req.user?.userId;
+            if (!userId) {
+                res.status(http_constants_1.HTTP_STATUS.UNAUTHORIZED).json({ message: 'User not authenticated' });
+                return;
+            }
+            const result = await this._authService.generatePairingToken(userId);
+            res.status(http_constants_1.HTTP_STATUS.OK).json(result);
+        });
+        this.linkDevice = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+            const { pairingToken, deviceId, deviceName } = req.body;
+            const result = await this._authService.linkDevice(pairingToken, deviceId, deviceName);
+            res.status(http_constants_1.HTTP_STATUS.OK).json(result);
+        });
+        this.validateDeviceSecret = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+            const { deviceId, deviceSecret } = req.body;
+            const result = await this._authService.validateDeviceSecret(deviceId, deviceSecret);
+            res.status(http_constants_1.HTTP_STATUS.OK).json(result);
+        });
     }
 };
 exports.AuthController = AuthController;

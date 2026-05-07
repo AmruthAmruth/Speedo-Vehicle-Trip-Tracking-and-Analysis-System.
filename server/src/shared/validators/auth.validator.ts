@@ -15,17 +15,17 @@ export const loginSchema = z.object({
     }),
 });
 
-export const registerDeviceSchema = z.object({
+export const linkDeviceSchema = z.object({
     body: z.object({
-        userId: z.string().min(1, 'User ID is required'),
+        pairingToken: z.string().min(1, 'Pairing Token is required'),
         deviceId: z.string().min(1, 'Device ID is required'),
         deviceName: z.string().min(1, 'Device Name is required'),
     }),
 });
 
-export const validateDeviceSchema = z.object({
+export const validateDeviceSecretSchema = z.object({
     body: z.object({
         deviceId: z.string().min(1, 'Device ID is required'),
-        deviceToken: z.string().min(1, 'Device Token is required'),
+        deviceSecret: z.string().min(1, 'Device Secret is required'),
     }),
 });

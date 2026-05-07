@@ -29,6 +29,9 @@ let GPSPointRepository = class GPSPointRepository {
             .sort({ timestamp: 1 })
             .lean();
     }
+    async deleteByTripId(tripId, session) {
+        await GPSPoint_model_1.GPSPointModel.deleteMany({ tripId }, { session });
+    }
 };
 exports.GPSPointRepository = GPSPointRepository;
 exports.GPSPointRepository = GPSPointRepository = __decorate([

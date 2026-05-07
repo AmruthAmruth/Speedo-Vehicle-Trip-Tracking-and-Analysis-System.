@@ -15,4 +15,5 @@ tripRouter.get('/:id', auth_middleware_1.authMiddleware, tripController.getTripB
 tripRouter.get('/:id/gpspoints', auth_middleware_1.authMiddleware, tripController.getTripGPSPoints);
 tripRouter.post('/:id/simulate', auth_middleware_1.authMiddleware, tripController.startSimulation);
 tripRouter.post('/:id/simulate/stop', auth_middleware_1.authMiddleware, tripController.stopSimulation);
+tripRouter.delete('/:id', auth_middleware_1.authMiddleware, tripController.deleteTrip);
 exports.default = tripRouter;
