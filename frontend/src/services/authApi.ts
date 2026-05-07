@@ -12,4 +12,14 @@ export const authApi = {
         const response = await api.post<RegisterResponse>(API_ROUTES.AUTH.REGISTER, data);
         return response.data;
     },
+
+    registerDevice: async (data: { userId: string; deviceId: string; deviceName: string }): Promise<{ deviceToken: string }> => {
+        const response = await api.post<{ deviceToken: string }>('/auth/devices/register', data);
+        return response.data;
+    },
+
+    validateDevice: async (data: { deviceId: string; deviceToken: string }): Promise<LoginResponse> => {
+        const response = await api.post<LoginResponse>('/auth/devices/validate', data);
+        return response.data;
+    },
 };

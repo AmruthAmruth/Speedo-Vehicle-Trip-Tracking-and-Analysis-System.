@@ -23,4 +23,15 @@ export class AuthController {
     const result = await this._authService.refresh(refreshToken);
     res.status(HTTP_STATUS.OK).json(result);
   });
+
+  registerDevice = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this._authService.registerDevice(req.body);
+    res.status(HTTP_STATUS.OK).json(result);
+  });
+
+  validateDevice = asyncHandler(async (req: Request, res: Response) => {
+    const { deviceId, deviceToken } = req.body;
+    const result = await this._authService.validateDeviceToken(deviceId, deviceToken);
+    res.status(HTTP_STATUS.OK).json(result);
+  });
 }

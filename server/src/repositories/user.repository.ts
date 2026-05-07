@@ -8,7 +8,22 @@ export class UserRepository implements IUserRepository {
     return UserModel.findOne({ email });
   }
 
+  async findById(id: string): Promise<IUser | null> {
+    return UserModel.findById(id);
+  }
+
+  async findByDevice(deviceId: string, deviceToken: string): Promise<IUser | null> {
+    return UserModel.findOne({
+      'devices.deviceId': deviceId,
+      'devices.deviceToken': deviceToken
+    });
+  }
+
   async create(user: Partial<IUser>): Promise<IUser> {
     return UserModel.create(user);
+  }
+
+  async update(id: string, user: Partial<IUser>): Promise<IUser | null> {
+    return UserModel.findByIdAndUpdate(id, user, { new: true });
   }
 }

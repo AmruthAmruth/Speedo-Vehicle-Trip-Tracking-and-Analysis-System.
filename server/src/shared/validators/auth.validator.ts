@@ -14,3 +14,18 @@ export const loginSchema = z.object({
         password: z.string().min(1, 'Password is required'),
     }),
 });
+
+export const registerDeviceSchema = z.object({
+    body: z.object({
+        userId: z.string().min(1, 'User ID is required'),
+        deviceId: z.string().min(1, 'Device ID is required'),
+        deviceName: z.string().min(1, 'Device Name is required'),
+    }),
+});
+
+export const validateDeviceSchema = z.object({
+    body: z.object({
+        deviceId: z.string().min(1, 'Device ID is required'),
+        deviceToken: z.string().min(1, 'Device Token is required'),
+    }),
+});

@@ -22,10 +22,12 @@ import {
     CheckCircle as CheckCircleIcon,
     Edit as EditIcon,
     Devices as DevicesIcon,
-    DirectionsCar as CarIcon
+    DirectionsCar as CarIcon,
+    PowerSettingsNew as PowerIcon
 } from '@mui/icons-material';
 import { socketService } from '../../../services/socketService';
 import { tripApi } from '../../../services/tripApi';
+import { authApi } from '../../../services/authApi';
 import { formatSpeed, formatDuration } from '../../../utils/tripUtils';
 import { toast } from 'react-toastify';
 
@@ -35,14 +37,14 @@ const MobileTracker: React.FC = () => {
     
     // Persistence state
     const [deviceName, setDeviceName] = useState<string>(localStorage.getItem('speedo_device_name') || '');
-    const [isDeviceSetup, setIsDeviceSetup] = useState<boolean>(!!localStorage.getItem('speedo_device_name'));
+    const [isDeviceSetup, setIsDeviceSetup] = useState<boolean>(!!localStorage.getItem('speedo_device_token'));
     const [tripName, setTripName] = useState<string>('');
     
     const [activeTripId, setActiveTripId] = useState<string | null>(id && id !== 'new' ? id : null);
     const [isTracking, setIsTracking] = useState(false);
     const [status, setStatus] = useState<'idle' | 'tracking' | 'error' | 'finished'>('idle');
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [currentPoint, setCurrentPoint] = useState<{
         latitude: number;
         longitude: number;
@@ -53,6 +55,40 @@ const MobileTracker: React.FC = () => {
 
     const watchIdRef = useRef<number | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Initial Authentication check
+    useEffect(() => {
+        const checkAuth = async () => {
+            const deviceId = localStorage.getItem('speedo_device_id');
+            const deviceToken = localStorage.getItem('speedo_device_token');
+
+            if (deviceId && deviceToken) {
+                try {
+                    const response = await authApi.validateDevice({ deviceId, deviceToken });
+                    localStorage.setItem('accessToken', response.accessToken);
+                    localStorage.setItem('refreshToken', response.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(response.user));
+                    setIsDeviceSetup(true);
+                } catch (err) {
+                    console.error("Device validation failed:", err);
+                    // If token is invalid, we might need to re-login
+                    // But we don't clear device info yet, maybe it was a network error
+                }
+            } else {
+                // Check if we are already logged in via standard flow
+                const user = localStorage.getItem('user');
+                if (!user) {
+                    // Not logged in and no device token -> redirect to login
+                    // The ProtectedRoute usually handles this, but since this route is public
+                    // we handle it here if we want to ensure auth
+                    // window.location.href = `/login?redirect=/dashboard/track/${id || 'new'}`;
+                }
+            }
+            setLoading(false);
+        };
+
+        checkAuth();
+    }, []);
 
     useEffect(() => {
         socketService.connect();
@@ -65,14 +101,39 @@ const MobileTracker: React.FC = () => {
         };
     }, [activeTripId]);
 
-    const handleDeviceSetup = () => {
+    const handleDeviceSetup = async () => {
         if (!deviceName.trim()) {
             toast.warn('Please provide a name for this device');
             return;
         }
-        localStorage.setItem('speedo_device_name', deviceName);
-        setIsDeviceSetup(true);
-        toast.success(`Device linked: ${deviceName}`);
+
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            toast.error('You must be logged in to link this device');
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const user = JSON.parse(userStr);
+            const deviceId = localStorage.getItem('speedo_device_id') || crypto.randomUUID();
+            
+            const response = await authApi.registerDevice({
+                userId: user.id,
+                deviceId: deviceId,
+                deviceName: deviceName
+            });
+
+            localStorage.setItem('speedo_device_id', deviceId);
+            localStorage.setItem('speedo_device_token', response.deviceToken);
+            localStorage.setItem('speedo_device_name', deviceName);
+            
+            setIsDeviceSetup(true);
+            toast.success(`Device securely linked: ${deviceName}`);
+        } catch (err) {
+            console.error("Failed to link device:", err);
+            toast.error("Failed to link device. Please try again.");
+        }
     };
 
     const startTracking = async () => {
@@ -98,9 +159,14 @@ const MobileTracker: React.FC = () => {
                 );
                 currentId = response.trip._id;
                 setActiveTripId(currentId);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to start live trip:", err);
-                setError("Failed to initialize trip session. Please check your connection.");
+                if (err.response?.status === 401) {
+                    setError("Session expired. Please log in again.");
+                    setIsDeviceSetup(false); // Force re-auth
+                } else {
+                    setError("Failed to initialize trip session. Please check your connection.");
+                }
                 setLoading(false);
                 return;
             }
@@ -185,7 +251,15 @@ const MobileTracker: React.FC = () => {
         }
     };
 
-    if (!isDeviceSetup) {
+    if (loading && !isTracking) {
+        return (
+            <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (!isDeviceSetup && !localStorage.getItem('accessToken')) {
         return (
             <Container maxWidth="sm" sx={{ py: 6, height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Fade in timeout={800}>
@@ -193,7 +267,7 @@ const MobileTracker: React.FC = () => {
                         p: 5, 
                         borderRadius: 8, 
                         textAlign: 'center',
-                        background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+                        background: 'white',
                         border: '1px solid #e2e8f0',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.05)'
                     }}>
@@ -205,32 +279,60 @@ const MobileTracker: React.FC = () => {
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center',
-                            margin: '0 auto 24px',
-                            boxShadow: '0 10px 20px rgba(99, 102, 241, 0.2)'
+                            margin: '0 auto 24px'
                         }}>
                             <DevicesIcon sx={{ fontSize: 40, color: 'white' }} />
                         </Box>
-                        <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: '#0f172a', letterSpacing: '-0.02em' }}>
-                            Link This Device
+                        <Typography variant="h4" fontWeight="800" gutterBottom>
+                            Secure Access
                         </Typography>
                         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                            Give this device a name (e.g., "Personal iPhone") so we can identify it in your fleet monitor.
+                            Please log in once to securely link this device for instant future tracking.
+                        </Typography>
+                        
+                        <Button 
+                            variant="contained" 
+                            fullWidth 
+                            size="large"
+                            onClick={() => navigate('/login')}
+                            sx={{ borderRadius: 4, py: 2, fontWeight: 'bold' }}
+                        >
+                            Log In to Continue
+                        </Button>
+                    </Paper>
+                </Fade>
+            </Container>
+        );
+    }
+
+    if (!isDeviceSetup) {
+        return (
+            <Container maxWidth="sm" sx={{ py: 6, height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Fade in timeout={800}>
+                    <Paper elevation={0} sx={{ 
+                        p: 5, 
+                        borderRadius: 8, 
+                        textAlign: 'center',
+                        background: 'white',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <Box sx={{ mb: 3 }}>
+                            <DevicesIcon sx={{ fontSize: 60, color: '#6366f1' }} />
+                        </Box>
+                        <Typography variant="h4" fontWeight="800" gutterBottom>
+                            Link Device
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                            Give this device a name to enable seamless one-click tracking.
                         </Typography>
                         
                         <TextField
                             fullWidth
                             label="Device Name"
                             placeholder="e.g. My Phone"
-                            variant="outlined"
                             value={deviceName}
                             onChange={(e) => setDeviceName(e.target.value)}
-                            sx={{ 
-                                mb: 4,
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: 4,
-                                    bgcolor: 'white'
-                                }
-                            }}
+                            sx={{ mb: 4 }}
                         />
 
                         <Button 
@@ -238,16 +340,9 @@ const MobileTracker: React.FC = () => {
                             fullWidth 
                             size="large"
                             onClick={handleDeviceSetup}
-                            sx={{ 
-                                borderRadius: 4, 
-                                py: 2, 
-                                fontWeight: 'bold',
-                                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                                textTransform: 'none',
-                                fontSize: '1.1rem'
-                            }}
+                            sx={{ borderRadius: 4, py: 2, fontWeight: 'bold' }}
                         >
-                            Confirm & Link Device
+                            Confirm & Enable Instant Tracking
                         </Button>
                     </Paper>
                 </Fade>
@@ -263,33 +358,23 @@ const MobileTracker: React.FC = () => {
                         p: 6, 
                         borderRadius: 8,
                         background: 'white',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)'
+                        border: '1px solid #e2e8f0'
                     }}>
                         <Box sx={{ mb: 3 }}>
                             <CheckCircleIcon sx={{ fontSize: 100, color: '#10b981' }} />
                         </Box>
-                        <Typography variant="h4" fontWeight="800" gutterBottom sx={{ color: '#1e293b' }}>Trip Completed!</Typography>
+                        <Typography variant="h4" fontWeight="800" gutterBottom>Trip Completed!</Typography>
                         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                            Great job! Your trip from <strong>{deviceName}</strong> has been successfully archived.
+                            Your tracking data has been securely saved.
                         </Typography>
                         
-                        <Box sx={{ 
-                            bgcolor: '#f8fafc', 
-                            p: 3, 
-                            borderRadius: 6, 
-                            mb: 4, 
-                            display: 'grid', 
-                            gridTemplateColumns: '1fr 1fr', 
-                            gap: 2,
-                            border: '1px solid #f1f5f9'
-                        }}>
+                        <Box sx={{ bgcolor: '#f8fafc', p: 3, borderRadius: 6, mb: 4, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                             <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Duration</Typography>
-                                <Typography variant="h5" fontWeight="bold" sx={{ color: '#334155' }}>{formatDuration(duration)}</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Duration</Typography>
+                                <Typography variant="h5" fontWeight="bold">{formatDuration(duration)}</Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Status</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>Status</Typography>
                                 <Typography variant="h5" fontWeight="bold" sx={{ color: '#10b981' }}>Saved</Typography>
                             </Box>
                         </Box>
@@ -298,16 +383,14 @@ const MobileTracker: React.FC = () => {
                             variant="contained" 
                             fullWidth 
                             size="large"
-                            onClick={() => navigate('/dashboard')}
-                            sx={{ 
-                                borderRadius: 4, 
-                                py: 2, 
-                                fontWeight: 'bold',
-                                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                                textTransform: 'none'
+                            onClick={() => {
+                                setStatus('idle');
+                                setDuration(0);
+                                setActiveTripId(null);
                             }}
+                            sx={{ borderRadius: 4, py: 2, fontWeight: 'bold' }}
                         >
-                            Return to Dashboard
+                            Start Another Trip
                         </Button>
                     </Paper>
                 </Fade>
@@ -316,19 +399,18 @@ const MobileTracker: React.FC = () => {
     }
 
     return (
-        <Container maxWidth="sm" sx={{ py: 4, height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f1f5f9' }}>
+        <Container maxWidth="sm" sx={{ py: 4, height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
             <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <IconButton onClick={() => navigate('/dashboard')} sx={{ mr: 1, bgcolor: 'white', '&:hover': { bgcolor: '#f8fafc' } }}>
-                        <ArrowBackIcon />
-                    </IconButton>
-                    <Typography variant="h5" fontWeight="800" sx={{ color: '#0f172a', letterSpacing: '-0.01em' }}>Mobile Tracker</Typography>
+                    <Typography variant="h5" fontWeight="800" sx={{ color: '#0f172a' }}>Fleet Tracker</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'white', px: 2, py: 0.5, borderRadius: 4, border: '1px solid #e2e8f0' }}>
-                    <DevicesIcon sx={{ fontSize: 16, color: '#64748b' }} />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="caption" fontWeight="bold" color="text.secondary">{deviceName}</Typography>
-                    <IconButton size="small" onClick={() => setIsDeviceSetup(false)}>
-                        <EditIcon sx={{ fontSize: 14 }} />
+                    <IconButton size="small" onClick={() => {
+                        localStorage.removeItem('speedo_device_token');
+                        setIsDeviceSetup(false);
+                    }}>
+                        <PowerIcon sx={{ fontSize: 18, color: '#ef4444' }} />
                     </IconButton>
                 </Box>
             </Box>
@@ -347,39 +429,15 @@ const MobileTracker: React.FC = () => {
             }}>
                 {status === 'tracking' ? (
                     <Box sx={{ mb: 4 }}>
-                        <Box sx={{ 
-                            position: 'relative', 
-                            display: 'inline-flex', 
-                            mb: 2,
-                            '&::after': {
-                                content: '""',
-                                position: 'absolute',
-                                top: -10,
-                                left: -10,
-                                right: -10,
-                                bottom: -10,
-                                borderRadius: '50%',
-                                border: '2px solid #10b981',
-                                animation: 'pulse-tracking 2s infinite'
-                            }
-                        }}>
-                            <Box sx={{ 
-                                width: 100, 
-                                height: 100, 
-                                bgcolor: '#10b981', 
-                                borderRadius: '50%', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center',
-                                boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)'
-                            }}>
+                        <Box className="tracking-pulse-container">
+                            <Box className="tracking-pulse-core">
                                 <GpsFixedIcon sx={{ fontSize: 50, color: 'white' }} />
                             </Box>
                         </Box>
-                        <Typography variant="h6" color="#10b981" fontWeight="800" sx={{ mt: 2, letterSpacing: '0.05em' }}>
-                            LIVE TRACKING ACTIVE
+                        <Typography variant="h6" color="#10b981" fontWeight="800" sx={{ mt: 3 }}>
+                            LIVE TRACKING
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">Transmitting high-precision telemetry</Typography>
+                        <Typography variant="body2" color="text.secondary">Broadcasting real-time telemetry</Typography>
                     </Box>
                 ) : (
                     <Box sx={{ mb: 4 }}>
@@ -395,59 +453,29 @@ const MobileTracker: React.FC = () => {
                         }}>
                             <CarIcon sx={{ fontSize: 50, color: '#94a3b8' }} />
                         </Box>
-                        <Typography variant="h5" fontWeight="800" sx={{ color: '#1e293b' }}>Ready to Start</Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Configure your trip below to begin tracking</Typography>
+                        <Typography variant="h5" fontWeight="800">Ready to Start</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Tap the button below to begin tracking</Typography>
                         
-                        {!isTracking && (
-                            <Fade in timeout={400}>
-                                <Box sx={{ width: '100%', mb: 2 }}>
-                                    <TextField
-                                        fullWidth
-                                        placeholder="Trip Name (e.g. Morning Commute)"
-                                        label="Trip Name"
-                                        value={tripName}
-                                        onChange={(e) => setTripName(e.target.value)}
-                                        disabled={loading}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <EditIcon sx={{ color: '#94a3b8' }} />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                        sx={{ 
-                                            '& .MuiOutlinedInput-root': {
-                                                borderRadius: 4,
-                                                bgcolor: '#f8fafc'
-                                            }
-                                        }}
-                                    />
-                                </Box>
-                            </Fade>
-                        )}
+                        <TextField
+                            fullWidth
+                            placeholder="Trip Name (Optional)"
+                            value={tripName}
+                            onChange={(e) => setTripName(e.target.value)}
+                            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: '#f8fafc' } }}
+                        />
                     </Box>
                 )}
 
-                {error && (
-                    <Alert severity="error" sx={{ mb: 3, borderRadius: 4, border: '1px solid #fee2e2' }}>
-                        {error}
-                    </Alert>
-                )}
+                {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 4 }}>{error}</Alert>}
 
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 4 }}>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 5, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                        <SpeedIcon sx={{ mb: 1, color: '#6366f1' }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700, textTransform: 'uppercase' }}>Speed</Typography>
-                        <Typography variant="h5" fontWeight="800" sx={{ color: '#1e293b' }}>
-                            {currentPoint ? formatSpeed(currentPoint.speed) : '0.0 km/h'}
-                        </Typography>
+                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                        <Typography variant="caption" color="text.secondary" fontWeight="700">SPEED</Typography>
+                        <Typography variant="h5" fontWeight="800">{currentPoint ? formatSpeed(currentPoint.speed) : '0.0 km/h'}</Typography>
                     </Paper>
-                    <Paper elevation={0} sx={{ p: 2.5, borderRadius: 5, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                        <TimerIcon sx={{ mb: 1, color: '#ec4899' }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700, textTransform: 'uppercase' }}>Duration</Typography>
-                        <Typography variant="h5" fontWeight="800" sx={{ color: '#1e293b' }}>
-                            {formatDuration(duration)}
-                        </Typography>
+                    <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                        <Typography variant="caption" color="text.secondary" fontWeight="700">TIME</Typography>
+                        <Typography variant="h5" fontWeight="800">{formatDuration(duration)}</Typography>
                     </Paper>
                 </Box>
 
@@ -456,20 +484,17 @@ const MobileTracker: React.FC = () => {
                         variant="contained"
                         size="large"
                         fullWidth
-                        disabled={loading}
                         onClick={startTracking}
-                        startIcon={loading ? <CircularProgress size={24} color="inherit" /> : <GpsFixedIcon />}
                         sx={{ 
                             py: 2.5, 
                             borderRadius: 5, 
                             fontSize: '1.2rem', 
                             fontWeight: 'bold',
                             background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                            boxShadow: '0 12px 24px rgba(79, 70, 229, 0.3)',
                             textTransform: 'none'
                         }}
                     >
-                        {loading ? 'Initializing...' : 'Start Live Tracking'}
+                        {activeTripId ? 'Resume Tracking' : 'Start Live Tracking'}
                     </Button>
                 ) : (
                     <Button
@@ -478,24 +503,40 @@ const MobileTracker: React.FC = () => {
                         size="large"
                         fullWidth
                         onClick={stopTracking}
-                        startIcon={<StopIcon />}
                         sx={{ 
                             py: 2.5, 
                             borderRadius: 5, 
                             fontSize: '1.2rem', 
                             fontWeight: 'bold',
-                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                            boxShadow: '0 12px 24px rgba(239, 68, 68, 0.3)',
                             textTransform: 'none'
                         }}
                     >
-                        End This Trip
+                        End Trip
                     </Button>
                 )}
             </Paper>
 
             <style>{`
-                @keyframes pulse-tracking {
+                .tracking-pulse-container {
+                    position: relative;
+                    display: inline-flex;
+                }
+                .tracking-pulse-container::after {
+                    content: "";
+                    position: absolute;
+                    top: -15px; left: -15px; right: -15px; bottom: -15px;
+                    border-radius: 50%;
+                    border: 2px solid #10b981;
+                    animation: pulse 2s infinite;
+                }
+                .tracking-pulse-core {
+                    width: 100px; height: 100px;
+                    background: #10b981;
+                    border-radius: 50%;
+                    display: flex; alignItems: center; justifyContent: center;
+                    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+                }
+                @keyframes pulse {
                     0% { transform: scale(1); opacity: 0.8; }
                     100% { transform: scale(1.4); opacity: 0; }
                 }

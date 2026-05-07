@@ -1,5 +1,6 @@
+import crypto from 'crypto';
 import { IUserRepository } from '../interfaces/IUserRepository';
-import { IAuthService, RegisterDTO, LoginDTO, AuthResponse, RegisterResponse } from '../interfaces/IAuthService';
+import { IAuthService, RegisterDTO, LoginDTO, AuthResponse, RegisterResponse, RegisterDeviceDTO } from '../interfaces/IAuthService';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../shared/utils/jwt.util';
 import { comparePassword, hashPassword } from '../shared/utils/password.util';
 import { HTTP_MESSAGES } from '../shared/constants/http.constants';
@@ -22,7 +23,8 @@ export class AuthService implements IAuthService {
     const user = await this._userRepository.create({
       name: data.name,
       email: data.email,
-      password: hashedPassword
+      password: hashedPassword,
+      devices: []
     });
 
     return {
@@ -88,5 +90,64 @@ export class AuthService implements IAuthService {
     } catch (error) {
       throw new UnauthorizedError('Invalid refresh token');
     }
+  }
+
+  async registerDevice(data: RegisterDeviceDTO): Promise<{ deviceToken: string }> {
+    const user = await this._userRepository.findById(data.userId);
+    if (!user) {
+      throw new BadRequestError('User not found');
+    }
+
+    // Check if device already registered
+    const existingDevice = user.devices.find(d => d.deviceId === data.deviceId);
+    const deviceToken = crypto.randomBytes(32).toString('hex');
+
+    if (existingDevice) {
+      existingDevice.deviceToken = deviceToken;
+      existingDevice.deviceName = data.deviceName;
+      existingDevice.lastUsed = new Date();
+    } else {
+      user.devices.push({
+        deviceId: data.deviceId,
+        deviceToken,
+        deviceName: data.deviceName,
+        lastUsed: new Date()
+      });
+    }
+
+    await this._userRepository.update(data.userId, { devices: user.devices });
+    return { deviceToken };
+  }
+
+  async validateDeviceToken(deviceId: string, deviceToken: string): Promise<AuthResponse> {
+    const user = await this._userRepository.findByDevice(deviceId, deviceToken);
+
+    if (!user) {
+      throw new UnauthorizedError('Invalid device token or unauthorized device');
+    }
+
+    const device = user.devices.find(d => d.deviceId === deviceId);
+    if (device) {
+      device.lastUsed = new Date();
+      await this._userRepository.update(user._id.toString(), { devices: user.devices });
+    }
+
+    const payload = {
+      userId: user._id.toString(),
+      email: user.email
+    };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email
+      }
+    };
   }
 }
