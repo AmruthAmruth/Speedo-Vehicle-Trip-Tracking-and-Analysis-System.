@@ -9,11 +9,18 @@ import CloseIcon from '@mui/icons-material/Close';
 import HistoryIcon from '@mui/icons-material/History';
 import SensorsIcon from '@mui/icons-material/Sensors';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import {
     Dialog,
-    IconButton
+    IconButton,
+    CircularProgress,
+    Box,
+    Typography,
+    Button
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
+import { toast } from 'react-toastify';
 
 const LiveTracking: React.FC = () => {
     const [activeTrips, setActiveTrips] = useState<Trip[]>([]);
@@ -53,19 +60,40 @@ const LiveTracking: React.FC = () => {
         }
     };
 
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [qrError, setQrError] = useState<string | null>(null);
+
     const handleStartLiveTracking = async () => {
+        setQrModalOpen(true);
+        setIsGenerating(true);
+        setQrError(null);
+        setPairingToken(null);
+        
         try {
-            const { pairingToken } = await authApi.getPairingToken();
-            setPairingToken(pairingToken);
-            setQrModalOpen(true);
+            const response = await authApi.getPairingToken();
+            if (response && response.pairingToken) {
+                setPairingToken(response.pairingToken);
+            } else {
+                throw new Error("Invalid response from server");
+            }
         } catch (err) {
             console.error('Failed to get pairing token:', err);
+            setQrError("Could not generate pairing token. Please check your connection.");
+        } finally {
+            setIsGenerating(false);
         }
     };
 
     const trackingUrl = pairingToken 
         ? `${window.location.origin}/dashboard/track/p/${pairingToken}`
         : `${window.location.origin}/dashboard/track/new`;
+
+    const copyToClipboard = () => {
+        if (trackingUrl) {
+            navigator.clipboard.writeText(trackingUrl);
+            toast.success("Link copied to clipboard!");
+        }
+    };
 
     const renderTripCard = (trip: Trip) => (
         <div
@@ -197,18 +225,39 @@ const LiveTracking: React.FC = () => {
                         </IconButton>
                     </div>
                     <div className="modal-body">
-                        <div className="qr-container-minimal">
-                            <QRCodeSVG value={trackingUrl} size={180} level="M" />
+                        <div className="qr-container-minimal" style={{ minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {isGenerating ? (
+                                <CircularProgress size={40} thickness={4} sx={{ color: '#6366f1' }} />
+                            ) : qrError ? (
+                                <Box sx={{ textAlign: 'center', p: 2 }}>
+                                    <ErrorOutlineIcon sx={{ fontSize: 40, color: '#ef4444', mb: 1 }} />
+                                    <Typography variant="body2" color="error">{qrError}</Typography>
+                                </Box>
+                            ) : (
+                                <QRCodeSVG value={trackingUrl} size={180} level="M" />
+                            )}
                         </div>
-                        <p className="modal-hint">Scan with your mobile to link this device instantly.</p>
+                        
+                        {!qrError && !isGenerating && (
+                            <>
+                                <p className="modal-hint">Scan with your mobile to link this device instantly.</p>
+                                <Box sx={{ mb: 3 }}>
+                                    <Button 
+                                        variant="outlined" 
+                                        size="small" 
+                                        startIcon={<ContentCopyIcon />} 
+                                        onClick={copyToClipboard}
+                                        sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}
+                                    >
+                                        Copy Tracking Link
+                                    </Button>
+                                </Box>
+                            </>
+                        )}
                         
                         <div className="modal-actions-v2">
-                            <button className="minimal-btn-primary full-width" onClick={() => navigate('/dashboard')}>
-                                <SensorsIcon sx={{ fontSize: 18 }} />
-                                <span>View Live Dashboard</span>
-                            </button>
-                            <button className="minimal-btn-secondary full-width" onClick={() => setQrModalOpen(false)}>
-                                Dismiss
+                            <button className="minimal-btn-primary full-width" onClick={() => setQrModalOpen(false)}>
+                                Done
                             </button>
                         </div>
                     </div>
