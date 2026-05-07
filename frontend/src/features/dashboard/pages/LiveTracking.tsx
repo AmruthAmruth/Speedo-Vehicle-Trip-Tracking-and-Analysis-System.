@@ -194,10 +194,19 @@ const LiveTracking: React.FC = () => {
                     </div>
                     <div className="modal-body">
                         <div className="qr-container-minimal">
-                            <QRCodeSVG value={trackingUrl} size={200} level="M" />
+                            <QRCodeSVG value={trackingUrl} size={180} level="M" />
                         </div>
-                        <p className="modal-hint">Scan this code with your mobile device to start a live tracking session.</p>
-                        <button className="minimal-btn-secondary" onClick={() => setQrModalOpen(false)}>Done</button>
+                        <p className="modal-hint">Scan with your mobile to link this device instantly.</p>
+                        
+                        <div className="modal-actions-v2">
+                            <button className="minimal-btn-primary full-width" onClick={() => navigate('/dashboard')}>
+                                <SensorsIcon sx={{ fontSize: 18 }} />
+                                <span>View Live Dashboard</span>
+                            </button>
+                            <button className="minimal-btn-secondary full-width" onClick={() => setQrModalOpen(false)}>
+                                Dismiss
+                            </button>
+                        </div>
                     </div>
                 </div>
             </Dialog>
@@ -515,6 +524,17 @@ const LiveTracking: React.FC = () => {
 
                 .minimal-btn-secondary:hover {
                     background: #e2e8f0;
+                }
+
+                .modal-actions-v2 {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .full-width {
+                    width: 100%;
+                    justify-content: center;
                 }
 
                 /* Loading */
