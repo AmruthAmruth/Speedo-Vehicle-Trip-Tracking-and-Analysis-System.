@@ -9,7 +9,6 @@ import {
     Alert,
     IconButton,
     TextField,
-    InputAdornment,
     Fade,
     CircularProgress,
     BottomNavigation,
@@ -21,10 +20,6 @@ import {
 } from '@mui/material';
 import { 
     MyLocation as GpsFixedIcon, 
-    Stop as StopIcon, 
-    Speed as SpeedIcon,
-    Timer as TimerIcon,
-    CheckCircle as CheckCircleIcon,
     Devices as DevicesIcon,
     DirectionsCar as CarIcon,
     PowerSettingsNew as PowerIcon,

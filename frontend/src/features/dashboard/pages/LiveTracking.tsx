@@ -3,22 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { tripApi } from '../../../services/tripApi';
 import { Trip } from '../../../types/trip.types';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HistoryIcon from '@mui/icons-material/History';
 import SensorsIcon from '@mui/icons-material/Sensors';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import {
     Dialog,
-    Typography,
-    IconButton,
-    Box,
-    Button
+    IconButton
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
-import { formatDate, formatDuration, calculateTripDuration } from '../../../utils/tripUtils';
 
 const LiveTracking: React.FC = () => {
     const [activeTrips, setActiveTrips] = useState<Trip[]>([]);
