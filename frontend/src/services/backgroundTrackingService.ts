@@ -155,7 +155,7 @@ export async function flushBufferedPoints(
   console.log(`[BGTracking] Flushing ${points.length} buffered points for trip ${tripId}`);
 
   try {
-    const res = await fetch(`${serverUrl}/api/trips/${tripId}/batch-locations`, {
+    const res = await fetch(`${serverUrl}/trip/${tripId}/batch-locations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -44,6 +44,7 @@ import {
     isInstallPromptAvailable,
     isRunningAsPWA,
     isIOS,
+    registerServiceWorker,
 } from '../../../services/backgroundTrackingService';
 
 const SERVER_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7000';
@@ -90,6 +91,7 @@ const MobileTracker: React.FC = () => {
     const watchIdRef = useRef<number | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const wakeLockRef = useRef<any>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // Background tracking state
     const [bufferedCount, setBufferedCount] = useState(0);
@@ -116,6 +118,23 @@ const MobileTracker: React.FC = () => {
         if (wakeLockRef.current) {
             await wakeLockRef.current.release();
             wakeLockRef.current = null;
+        }
+    };
+
+    // Silent Audio Hack for Background Persistence
+    const playSilentAudio = () => {
+        if (!audioRef.current) {
+            audioRef.current = new Audio();
+            // 1 second of silence (base64)
+            audioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
+            audioRef.current.loop = true;
+        }
+        audioRef.current.play().catch(err => console.warn('Audio play failed (user interaction required):', err));
+    };
+
+    const stopSilentAudio = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
         }
     };
 
@@ -165,9 +184,12 @@ const MobileTracker: React.FC = () => {
         };
     }, [isTracking, activeTripId]);
 
-    // Bootstrap: check persistence or pairing
+    // Bootstrap: check persistence or pairing + Register SW
     useEffect(() => {
         const bootstrap = async () => {
+            // Register SW for background sync
+            await registerServiceWorker();
+            
             const secret = localStorage.getItem('speedo_device_secret');
             
             console.log("Tracker Bootstrap:", { secret: !!secret, pairingToken: !!pairingToken });
@@ -290,6 +312,9 @@ const MobileTracker: React.FC = () => {
             // Acquire wake lock to keep CPU alive
             await requestWakeLock();
             
+            // Play silent audio to keep JS execution alive in background
+            playSilentAudio();
+            
             timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
@@ -336,8 +361,9 @@ const MobileTracker: React.FC = () => {
         notifyTrackingStopped();
         setShowInstallBanner(false);
         
-        // Release wake lock
+        // Release wake lock and stop audio
         await releaseWakeLock();
+        stopSilentAudio();
         
         setIsTracking(false);
         if (activeTripId) {

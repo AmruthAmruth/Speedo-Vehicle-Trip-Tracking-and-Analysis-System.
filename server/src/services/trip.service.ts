@@ -6,31 +6,43 @@ import { IGPSPointRepository } from '../interfaces/IGPSPointRepository';
 import { ITrip } from '../models/Trip.model';
 import { NotFoundError, ForbiddenError } from '../shared/types/errors';
 import { HTTP_MESSAGES } from '../shared/constants/http.constants';
+import { SocketService } from './socket.service';
 
 @injectable()
 export class TripService implements ITripService {
     constructor(
         @inject('ITripRepository') private _tripRepo: ITripRepository,
-        @inject('IGPSPointRepository') private _gpsRepo: IGPSPointRepository
+        @inject('IGPSPointRepository') private _gpsRepo: IGPSPointRepository,
+        @inject('SocketService') private _socketService: SocketService
     ) { }
 
     async startLiveTrip(userId: string, name?: string, metadata?: any): Promise<ITrip> {
-        return this._tripRepo.create({
+        const trip = await this._tripRepo.create({
             userId: userId as any,
             name: name || `Live Trip ${new Date().toLocaleString()}`,
             startTime: new Date(),
             isActive: true,
             metadata: metadata || {}
         });
+
+        // Notify dashboard about new trip
+        this._socketService.emitToRoom(`user_${userId}`, 'TRIP_STARTED', trip);
+
+        return trip;
     }
 
     async stopLiveTrip(userId: string, tripId: string): Promise<ITrip> {
         const trip = await this._getAndAuthorizeTrip(userId, tripId);
 
-        return this._tripRepo.update(tripId, {
+        const updatedTrip = await this._tripRepo.update(tripId, {
             isActive: false,
             endTime: new Date()
-        }) as Promise<ITrip>;
+        }) as ITrip;
+
+        // Notify dashboard about trip end
+        this._socketService.emitToRoom(`user_${userId}`, 'TRIP_STOPPED', updatedTrip);
+
+        return updatedTrip;
     }
 
     async deleteTrip(userId: string, tripId: string): Promise<void> {

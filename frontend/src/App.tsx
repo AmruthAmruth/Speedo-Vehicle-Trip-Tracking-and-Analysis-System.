@@ -13,6 +13,8 @@ import MobileTracker from './features/dashboard/pages/MobileTracker';
 import LiveTracking from './features/dashboard/pages/LiveTracking';
 import FleetMap from './features/dashboard/pages/FleetMap';
 import DriverBehavior from './features/dashboard/pages/DriverBehavior';
+import { registerServiceWorker } from './services/backgroundTrackingService';
+import { useEffect } from 'react';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -20,6 +22,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { APP_ROUTES } from './constants/routes';
 
 const App = () => {
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
     <>
       <Routes>

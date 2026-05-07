@@ -51,6 +51,11 @@ export class SocketService {
                 console.log(`📡 Client ${socket.id} joined trip room: ${tripId}`);
             });
 
+            socket.on('joinUserRoom', (userId: string) => {
+                socket.join(`user_${userId}`);
+                console.log(`👤 Client ${socket.id} joined user room: user_${userId}`);
+            });
+
             socket.on('locationUpdate', async (data: { tripId: string, point: any }) => {
                 const { tripId, point } = data;
                 console.log(`📥 Received live point for trip ${tripId}`);

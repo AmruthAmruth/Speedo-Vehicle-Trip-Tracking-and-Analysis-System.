@@ -114,7 +114,7 @@ async function syncPendingLocations() {
 
       try {
         const res = await fetch(
-          `${self.serverUrl || ''}/api/trips/${tripId}/batch-locations`,
+          `${self.serverUrl || ''}/trip/${tripId}/batch-locations`,
           {
             method: 'POST',
             headers: {

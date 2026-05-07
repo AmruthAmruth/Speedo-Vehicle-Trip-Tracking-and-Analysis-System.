@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-toastify';
+import { socketService } from '../../../services/socketService';
 
 const LiveTracking: React.FC = () => {
     const [activeTrips, setActiveTrips] = useState<Trip[]>([]);
@@ -32,8 +33,37 @@ const LiveTracking: React.FC = () => {
 
     useEffect(() => {
         loadTrips();
-        const interval = setInterval(loadTrips, 30000);
-        return () => clearInterval(interval);
+        
+        // Real-time updates via Socket
+        socketService.connect();
+        
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            const user = JSON.parse(userData);
+            socketService.joinUserRoom(user._id);
+        }
+
+        socketService.onTripStarted((trip) => {
+            console.log('🚀 Trip started real-time:', trip);
+            setActiveTrips(prev => {
+                // Avoid duplicates
+                if (prev.find(t => t._id === trip._id)) return prev;
+                return [trip, ...prev];
+            });
+            toast.info(`New tracking session started: ${trip.name}`);
+        });
+
+        socketService.onTripStopped((trip) => {
+            console.log('🏁 Trip stopped real-time:', trip);
+            setActiveTrips(prev => prev.filter(t => t._id !== trip._id));
+            setPreviousLiveTrips(prev => [trip, ...prev].slice(0, 5));
+            toast.success(`Tracking session ended: ${trip.name}`);
+        });
+
+        const interval = setInterval(loadTrips, 30000); // Polling as fallback
+        return () => {
+            clearInterval(interval);
+        };
     }, []);
 
     const loadTrips = async () => {

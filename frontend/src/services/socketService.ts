@@ -43,6 +43,27 @@ class SocketService {
         }
     }
 
+    joinUserRoom(userId: string) {
+        if (this.socket) {
+            this.socket.emit('joinUserRoom', userId);
+            console.log(`👤 Joining user room: user_${userId}`);
+        }
+    }
+
+    onTripStarted(callback: (trip: any) => void) {
+        if (this.socket) {
+            this.socket.off('TRIP_STARTED');
+            this.socket.on('TRIP_STARTED', callback);
+        }
+    }
+
+    onTripStopped(callback: (trip: any) => void) {
+        if (this.socket) {
+            this.socket.off('TRIP_STOPPED');
+            this.socket.on('TRIP_STOPPED', callback);
+        }
+    }
+
     onLocationUpdate(callback: (point: GPSPoint) => void) {
         if (this.socket) {
             // Remove any existing listener to avoid duplicates
