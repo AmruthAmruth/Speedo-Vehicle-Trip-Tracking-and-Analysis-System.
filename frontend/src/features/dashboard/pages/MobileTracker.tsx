@@ -74,6 +74,43 @@ const MobileTracker: React.FC = () => {
 
     const watchIdRef = useRef<number | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const wakeLockRef = useRef<any>(null);
+
+    // Wake Lock Support
+    const requestWakeLock = async () => {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+                console.log('✅ Wake Lock is active');
+                
+                wakeLockRef.current.addEventListener('release', () => {
+                    console.log('⚠️ Wake Lock was released');
+                });
+            } catch (err: any) {
+                console.error(`Wake Lock Error: ${err.name}, ${err.message}`);
+            }
+        }
+    };
+
+    const releaseWakeLock = async () => {
+        if (wakeLockRef.current) {
+            await wakeLockRef.current.release();
+            wakeLockRef.current = null;
+        }
+    };
+
+    // Handle background/foreground transitions
+    useEffect(() => {
+        const handleVisibilityChange = async () => {
+            if (document.visibilityState === 'visible' && isTracking) {
+                // Re-acquire wake lock if we come back to foreground
+                await requestWakeLock();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isTracking]);
 
     // Bootstrap: check persistence or pairing
     useEffect(() => {
@@ -127,7 +164,10 @@ const MobileTracker: React.FC = () => {
     useEffect(() => {
         socketService.connect();
         return () => {
-            if (isTracking) stopTracking();
+            if (isTracking) {
+                stopTracking();
+                releaseWakeLock();
+            }
         };
     }, []);
 
@@ -186,6 +226,9 @@ const MobileTracker: React.FC = () => {
             setIsTracking(true);
             setStatus('tracking');
             
+            // Acquire wake lock to keep CPU alive
+            await requestWakeLock();
+            
             timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
@@ -205,7 +248,11 @@ const MobileTracker: React.FC = () => {
                     socketService.emitLocationUpdate(response.trip._id, point);
                 },
                 (err) => console.error(`Location Error: ${err.message}`),
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { 
+                    enableHighAccuracy: true, 
+                    timeout: 20000, // Longer timeout for background
+                    maximumAge: 0 
+                }
             );
         } catch (err: any) {
             toast.error("Failed to initialize session.");
@@ -218,6 +265,9 @@ const MobileTracker: React.FC = () => {
     const stopTracking = async () => {
         if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
         if (timerRef.current) clearInterval(timerRef.current);
+        
+        // Release wake lock
+        await releaseWakeLock();
         
         setIsTracking(false);
         if (activeTripId) {
@@ -312,6 +362,10 @@ const MobileTracker: React.FC = () => {
                         <Box sx={{ mb: 4 }}>
                             <Box className="tracking-pulse-container"><Box className="tracking-pulse-core"><GpsFixedIcon sx={{ fontSize: 50, color: 'white' }} /></Box></Box>
                             <Typography variant="h6" color="#10b981" fontWeight="800" sx={{ mt: 3 }}>EN ROUTE</Typography>
+                            <Box sx={{ mt: 1, display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: '#ecfdf5', px: 2, py: 0.5, borderRadius: 10, border: '1px solid #10b981' }}>
+                                <Box sx={{ width: 6, height: 6, bgcolor: '#10b981', borderRadius: '50%', animation: 'pulse 1s infinite' }} />
+                                <Typography variant="caption" sx={{ color: '#065f46', fontWeight: 700 }}>Background Tracking Active</Typography>
+                            </Box>
                         </Box>
                     ) : (
                         <Box sx={{ mb: 4 }}>
