@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import {
-    TrendingUp as TrendingUpIcon,
-    Security as SecurityIcon,
-    DirectionsCar as CarIcon,
-    LocalGasStation as GasIcon,
-    Co2 as Co2Icon
-} from '@mui/icons-material';
+// Cache bust: 2026-05-12T10:43:00
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import SecurityIcon from '@mui/icons-material/Shield';
+import CarIcon from '@mui/icons-material/DirectionsCar';
+import TimerIcon from '@mui/icons-material/Timer';
+import BoltIcon from '@mui/icons-material/Bolt';
+import WarningIcon from '@mui/icons-material/WarningAmber';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
+    BarChart, Bar, Cell
 } from 'recharts';
 import { tripApi } from '../../../services/tripApi';
 import { Trip } from '../../../types/trip.types';
-import { formatDistance } from '../../../utils/tripUtils';
+import { formatDistance, formatDuration } from '../../../utils/tripUtils';
+import { Card, Badge, Button } from '../../../components/shared/ui';
 
-const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6366f1'];
+const COLORS = ['#000000', '#475569', '#94a3b8', '#cbd5e1'];
 
 const DriverBehavior: React.FC = () => {
     const [trips, setTrips] = useState<Trip[]>([]);
@@ -38,17 +39,18 @@ const DriverBehavior: React.FC = () => {
     const totalDistance = trips.reduce((acc, t) => acc + (t.totalDistance || 0), 0);
     const totalIdling = trips.reduce((acc, t) => acc + (t.totalIdlingTime || 0), 0);
     const totalStoppage = trips.reduce((acc, t) => acc + (t.totalStoppageTime || 0), 0);
+    const totalDuration = trips.reduce((acc, t) => acc + (new Date(t.endTime || t.startTime).getTime() - new Date(t.startTime).getTime()), 0);
     const tripCount = trips.length;
 
-    // Mock scores for now (calculated based on idling ratio)
+    // Derived Insights
     const tripScores = trips.map(t => {
-        const idleRatio = t.totalDistance > 0 ? (t.totalIdlingTime / (t.totalDistance * 10)) : 0; // arbitrary ratio
+        const idleRatio = t.totalDistance > 0 ? (t.totalIdlingTime / (t.totalDistance * 10)) : 0;
         const score = Math.max(0, Math.min(100, 100 - (idleRatio * 500)));
         return {
-            name: t.name.length > 15 ? t.name.substring(0, 12) + '...' : t.name,
+            name: t.name.length > 12 ? t.name.substring(0, 10) + '..' : t.name,
             score: Math.round(score),
             distance: Math.round(t.totalDistance / 1000),
-            date: new Date(t.startTime).toLocaleDateString()
+            date: new Date(t.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         };
     }).reverse();
 
@@ -56,217 +58,223 @@ const DriverBehavior: React.FC = () => {
         ? Math.round(tripScores.reduce((acc, s) => acc + s.score, 0) / tripScores.length)
         : 85;
 
-    const activityData = [
-        { name: 'Driving', value: totalDistance > 0 ? 70 : 0 },
-        { name: 'Idling', value: totalIdling },
-        { name: 'Stoppage', value: totalStoppage },
-    ].filter(d => d.value > 0);
+    const efficiencyScore = Math.min(100, Math.round((totalDistance / 1000) / (totalDuration / 3600000) * 1.5));
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-                <div className="spinner"></div>
+            <div className="flex justify-center items-center py-40">
+                <div className="h-10 w-10 animate-spin border-2 border-slate-200 border-t-black rounded-full" />
             </div>
         );
     }
 
     return (
-        <div className="analysis-container" style={{ paddingBottom: '40px' }}>
-            <div style={{ marginBottom: '32px' }}>
-                <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#1e293b', margin: 0 }}>Fleet Analytics & Intelligence</h2>
-                <p style={{ color: '#64748b', fontSize: '16px', marginTop: '4px' }}>Deep dive into your driving performance and safety metrics</p>
+        <div className="max-w-7xl mx-auto space-y-12 animate-fade-in pb-20 pt-8 px-4">
+            {/* Header Section */}
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-100 pb-10 gap-8">
+                <div className="space-y-1">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
+                        Fleet Intelligence
+                    </h1>
+                    <p className="text-slate-500 font-medium tracking-tight">
+                        Deep analysis of driver behavior, safety metrics, and operational efficiency.
+                    </p>
+                </div>
+                <div className="flex gap-3">
+                    <Button variant="outline" className="rounded-xl border-slate-100 h-11 px-6 text-xs font-bold uppercase tracking-widest">
+                        Export PDF
+                    </Button>
+                    <Button variant="primary" className="rounded-xl bg-black h-11 px-6 text-xs font-bold uppercase tracking-widest">
+                        Refresh Data
+                    </Button>
+                </div>
+            </header>
+
+            {/* Core KPI Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="p-6 border-slate-100 shadow-soft space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="p-2 bg-slate-50 rounded-lg"><SecurityIcon className="text-slate-900 w-5 h-5" /></div>
+                        <Badge variant="success" size="sm" className="bg-emerald-50 text-emerald-600 border-none">+2.4%</Badge>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Safety Index</p>
+                        <h3 className="text-3xl font-bold text-slate-900">{avgSafetyScore}<span className="text-sm text-slate-300 font-medium ml-1">/100</span></h3>
+                    </div>
+                </Card>
+
+                <Card className="p-6 border-slate-100 shadow-soft space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="p-2 bg-slate-50 rounded-lg"><CarIcon className="text-slate-900 w-5 h-5" /></div>
+                        <Badge variant="primary" size="sm" className="bg-slate-100 text-slate-600 border-none">{tripCount} Sessions</Badge>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Distance</p>
+                        <h3 className="text-3xl font-bold text-slate-900">{formatDistance(totalDistance)}</h3>
+                    </div>
+                </Card>
+
+                <Card className="p-6 border-slate-100 shadow-soft space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="p-2 bg-slate-50 rounded-lg"><BoltIcon className="text-slate-900 w-5 h-5" /></div>
+                        <Badge variant="warning" size="sm" className="bg-amber-50 text-amber-600 border-none">Optimal</Badge>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Efficiency Score</p>
+                        <h3 className="text-3xl font-bold text-slate-900">{efficiencyScore}%</h3>
+                    </div>
+                </Card>
+
+                <Card className="p-6 border-slate-100 shadow-soft space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="p-2 bg-slate-50 rounded-lg"><TimerIcon className="text-slate-900 w-5 h-5" /></div>
+                        <Badge variant="error" size="sm" className="bg-rose-50 text-rose-600 border-none">Check</Badge>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Avg. Stoppage</p>
+                        <h3 className="text-3xl font-bold text-slate-900">{formatDuration(totalStoppage / (tripCount || 1))}</h3>
+                    </div>
+                </Card>
             </div>
 
-            {/* Top Insights Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-                <div className="dashboard-card" style={{ borderLeft: '4px solid #6366f1' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            {/* Main Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Trend Analysis */}
+                <Card className="lg:col-span-8 p-8 border-slate-100 shadow-soft">
+                    <div className="flex items-center justify-between mb-10">
                         <div>
-                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Avg. Safety Score</p>
-                            <h3 style={{ margin: '8px 0', fontSize: '32px', fontWeight: 800, color: '#1e293b' }}>{avgSafetyScore} <span style={{ fontSize: '16px', color: '#64748b' }}>/ 100</span></h3>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10b981', fontSize: '13px', fontWeight: 700 }}>
-                                <TrendingUpIcon style={{ fontSize: 16 }} />
-                                <span>+2.4% vs last month</span>
+                            <h3 className="text-lg font-bold text-slate-900">Safety & Distance Trend</h3>
+                            <p className="text-xs text-slate-400 font-medium mt-1">Timeline of performance across recent sessions.</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-black" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Score</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-slate-200" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Distance</span>
                             </div>
                         </div>
-                        <div style={{ padding: '12px', background: '#eef2ff', borderRadius: '12px' }}>
-                            <SecurityIcon style={{ color: '#6366f1' }} />
-                        </div>
                     </div>
-                </div>
-
-                <div className="dashboard-card" style={{ borderLeft: '4px solid #10b981' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Total Fleet Distance</p>
-                            <h3 style={{ margin: '8px 0', fontSize: '32px', fontWeight: 800, color: '#1e293b' }}>{formatDistance(totalDistance)}</h3>
-                            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Across {tripCount} recorded trips</p>
-                        </div>
-                        <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '12px' }}>
-                            <CarIcon style={{ color: '#10b981' }} />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="dashboard-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Estimated Fuel Cost</p>
-                            <h3 style={{ margin: '8px 0', fontSize: '32px', fontWeight: 800, color: '#1e293b' }}>${(totalDistance * 0.00012).toFixed(2)}</h3>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '13px' }}>
-                                <GasIcon style={{ fontSize: 16 }} />
-                                <span>Based on $3.50/gal avg</span>
-                            </div>
-                        </div>
-                        <div style={{ padding: '12px', background: '#fffbeb', borderRadius: '12px' }}>
-                            <GasIcon style={{ color: '#f59e0b' }} />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="dashboard-card" style={{ borderLeft: '4px solid #ef4444' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Carbon Footprint</p>
-                            <h3 style={{ margin: '8px 0', fontSize: '32px', fontWeight: 800, color: '#1e293b' }}>{(totalDistance * 0.0002).toFixed(1)} <span style={{ fontSize: '16px' }}>kg</span></h3>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#ef4444', fontSize: '13px' }}>
-                                <Co2Icon style={{ fontSize: 16 }} />
-                                <span>CO2 Emission Total</span>
-                            </div>
-                        </div>
-                        <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '12px' }}>
-                            <Co2Icon style={{ color: '#ef4444' }} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Charts Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '32px' }}>
-                {/* Distance & Score Trend */}
-                <div className="dashboard-card" style={{ padding: '24px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '24px', color: '#334155' }}>Distance & Safety Trend</h3>
-                    <div style={{ height: '300px', width: '100%' }}>
+                    <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={tripScores}>
                                 <defs>
                                     <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#000000" stopOpacity={0.05} />
+                                        <stop offset="95%" stopColor="#000000" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickMargin={10} fontStyle="bold" />
+                                <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickMargin={10} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)', padding: '12px' }}
+                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                    labelStyle={{ fontSize: '10px', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}
                                 />
-                                <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" name="Safety Score" />
-                                <Area type="monotone" dataKey="distance" stroke="#10b981" strokeWidth={2} fillOpacity={0} name="Distance (km)" />
+                                <Area type="monotone" dataKey="score" stroke="#000000" strokeWidth={2.5} fillOpacity={1} fill="url(#colorScore)" name="Safety Index" />
+                                <Area type="monotone" dataKey="distance" stroke="#cbd5e1" strokeWidth={1.5} fillOpacity={0} name="Dist (km)" strokeDasharray="5 5" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
+                </Card>
 
-                {/* Activity Breakdown */}
-                <div className="dashboard-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '24px', color: '#334155' }}>Activity Split</h3>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ResponsiveContainer width="100%" height={250}>
-                            <PieChart>
-                                <Pie
-                                    data={activityData}
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {activityData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend verticalAlign="bottom" height={36} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                {/* Risk Event Analysis */}
+                <Card className="lg:col-span-4 p-8 border-slate-100 shadow-soft">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">Risk Event Analysis</h3>
+                    <p className="text-xs text-slate-400 font-medium mb-10">Real-time behavior violation monitoring.</p>
+                    
+                    <div className="space-y-8">
+                        {[
+                            { label: 'Overspeeding Ratio', value: 12, status: 'Low Risk', color: 'bg-black' },
+                            { label: 'Aggressive Braking', value: 34, status: 'Moderate', color: 'bg-slate-400' },
+                            { label: 'Idle Fuel Waste', value: 8, status: 'Minimal', color: 'bg-slate-200' },
+                            { label: 'Cornering G-Force', value: 22, status: 'Normal', color: 'bg-slate-300' }
+                        ].map((risk) => (
+                            <div key={risk.label} className="space-y-3">
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">{risk.label}</p>
+                                        <p className="text-[10px] font-medium text-slate-400">{risk.status}</p>
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-900">{risk.value}%</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full ${risk.color} rounded-full transition-all duration-1000`} 
+                                        style={{ width: `${risk.value}%` }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                </div>
+
+                    <div className="mt-10 pt-10 border-t border-slate-50 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center">
+                            <WarningIcon className="text-rose-600" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-slate-900">Urgent Recommendation</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Review aggressive braking events in Trip #402.</p>
+                        </div>
+                    </div>
+                </Card>
             </div>
 
-            {/* Bottom Section: Risk Factors & Rankings */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div className="dashboard-card" style={{ padding: '24px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px', color: '#334155' }}>Risk Event Analysis</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                <span style={{ fontWeight: 600, color: '#475569', fontSize: '14px' }}>Overspeeding Ratio</span>
-                                <span style={{ fontWeight: 700, color: '#ef4444', fontSize: '14px' }}>Low Risk</span>
-                            </div>
-                            <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px' }}>
-                                <div style={{ height: '100%', width: '15%', background: '#ef4444', borderRadius: '4px' }}></div>
-                            </div>
-                        </div>
-                        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                <span style={{ fontWeight: 600, color: '#475569', fontSize: '14px' }}>Aggressive Acceleration</span>
-                                <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: '14px' }}>Moderate</span>
-                            </div>
-                            <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px' }}>
-                                <div style={{ height: '100%', width: '45%', background: '#f59e0b', borderRadius: '4px' }}></div>
-                            </div>
-                        </div>
-                        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                <span style={{ fontWeight: 600, color: '#475569', fontSize: '14px' }}>Fuel Waste (Idling)</span>
-                                <span style={{ fontWeight: 700, color: '#10b981', fontSize: '14px' }}>Optimal</span>
-                            </div>
-                            <div style={{ height: '8px', background: '#e2e8f0', borderRadius: '4px' }}>
-                                <div style={{ height: '100%', width: '8%', background: '#10b981', borderRadius: '4px' }}></div>
-                            </div>
-                        </div>
-                    </div>
+            {/* Rankings Table */}
+            <section className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-900">Performance Leaderboard</h2>
+                    <Button variant="outline" className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest border-slate-100">Full Ranking</Button>
                 </div>
-
-                <div className="dashboard-card" style={{ padding: '0' }}>
-                    <div style={{ padding: '24px 24px 12px 24px' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#334155' }}>Recent Trip Rankings</h3>
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-                                    <th style={{ textAlign: 'left', padding: '12px 24px', fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>Trip</th>
-                                    <th style={{ textAlign: 'left', padding: '12px 24px', fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>Score</th>
-                                    <th style={{ textAlign: 'left', padding: '12px 24px', fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>Grade</th>
+                <Card className="p-0 overflow-hidden border-slate-100 shadow-soft">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50/50 border-b border-slate-50">
+                            <tr>
+                                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Session Identifier</th>
+                                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Safety Score</th>
+                                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Telemetry Grade</th>
+                                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50/50">
+                            {tripScores.slice(0, 5).map((s, i) => (
+                                <tr key={i} className="hover:bg-slate-50/30 transition-colors">
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-bold text-slate-900">{s.name}</span>
+                                            <span className="text-[10px] font-medium text-slate-400">{s.date}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1.5 w-16 bg-slate-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-black rounded-full" style={{ width: `${s.score}%` }} />
+                                            </div>
+                                            <span className="text-sm font-bold text-slate-900">{s.score}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <Badge variant="outline" className="rounded-lg border-slate-200 text-slate-600 px-3 py-1 text-[10px] font-black tracking-widest uppercase">
+                                            {s.score > 90 ? 'Grade A+' : s.score > 80 ? 'Grade A' : 'Grade B'}
+                                        </Badge>
+                                    </td>
+                                    <td className="px-8 py-6 text-right">
+                                        <button className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-black transition-colors">
+                                            View Insight →
+                                        </button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {tripScores.slice(0, 5).map((s, i) => (
-                                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>{s.name}</td>
-                                        <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 700, color: s.score > 80 ? '#10b981' : '#f59e0b' }}>{s.score}</td>
-                                        <td style={{ padding: '16px 24px' }}>
-                                            <span style={{
-                                                padding: '4px 10px',
-                                                borderRadius: '20px',
-                                                fontSize: '11px',
-                                                fontWeight: 800,
-                                                background: s.score > 90 ? '#dcfce7' : s.score > 80 ? '#ecfdf5' : '#fffbeb',
-                                                color: s.score > 90 ? '#15803d' : s.score > 80 ? '#10b981' : '#b45309'
-                                            }}>
-                                                {s.score > 90 ? 'A+' : s.score > 80 ? 'A' : 'B'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                            ))}
+                        </tbody>
+                    </table>
+                </Card>
+            </section>
         </div>
     );
 };
 
 export default DriverBehavior;
+

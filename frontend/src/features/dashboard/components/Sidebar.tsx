@@ -22,59 +22,56 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     const menuItems = [
         { path: APP_ROUTES.DASHBOARD.ROOT, icon: <DashboardIcon />, label: 'Overview' },
         { path: `${APP_ROUTES.DASHBOARD.ROOT}/${APP_ROUTES.DASHBOARD.LIVE_TRACKING}`, icon: <GpsFixedIcon />, label: 'Live Tracking' },
-        { path: `${APP_ROUTES.DASHBOARD.ROOT}/${APP_ROUTES.DASHBOARD.TRIPS}`, icon: <HistoryIcon />, label: 'Trip History' },
+        { path: `${APP_ROUTES.DASHBOARD.ROOT}/${APP_ROUTES.DASHBOARD.TRIPS}`, icon: <HistoryIcon />, label: 'History' },
         { path: `${APP_ROUTES.DASHBOARD.ROOT}/${APP_ROUTES.DASHBOARD.DRIVERS}`, icon: <BarChartIcon />, label: 'Analysis' },
-        { path: `${APP_ROUTES.DASHBOARD.ROOT}/${APP_ROUTES.DASHBOARD.UPLOAD}`, icon: <UploadFileIcon />, label: 'Upload Data' },
+        { path: `${APP_ROUTES.DASHBOARD.ROOT}/${APP_ROUTES.DASHBOARD.UPLOAD}`, icon: <UploadFileIcon />, label: 'Upload' },
     ];
 
     return (
         <aside 
             className={cn(
-                "fixed top-0 left-0 z-40 h-screen transition-all duration-300 border-r border-slate-100 bg-white shadow-premium flex flex-col",
+                "fixed top-0 left-0 z-40 h-screen transition-all duration-200 border-r border-black bg-white flex flex-col",
                 isOpen ? "w-64" : "w-20"
             )}
         >
             {/* Logo */}
-            <div className="flex items-center gap-3 px-6 py-10">
-                <div className="bg-brand-500 p-2 rounded-2xl shadow-glow shadow-brand-500/20">
+            <div className="flex items-center gap-4 px-6 py-12 border-b border-black mb-6">
+                <div className="bg-black p-2">
                     <SpeedIcon className="text-white" />
                 </div>
                 {isOpen && (
-                    <span className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">
+                    <span className="text-xl font-black uppercase tracking-tighter">
                         Speedo
                     </span>
                 )}
             </div>
 
             {/* Navigation */}
-            <nav className="flex-grow px-3 space-y-1">
+            <nav className="flex-grow px-2 space-y-1">
                 {menuItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
                         end={item.path === APP_ROUTES.DASHBOARD.ROOT}
                         className={({ isActive }) => cn(
-                            "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative overflow-hidden",
+                            "flex items-center gap-4 px-4 py-4 transition-all group",
                             isActive 
-                                ? "bg-brand-50 text-brand-600 shadow-sm" 
-                                : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                                ? "bg-black text-white" 
+                                : "text-slate-400 hover:text-black hover:bg-slate-50"
                         )}
                     >
                         {({ isActive }) => (
                             <>
                                 <span className={cn(
                                     "transition-colors",
-                                    isActive ? "text-brand-500" : "group-hover:text-brand-400"
+                                    isActive ? "text-white" : "group-hover:text-black"
                                 )}>
                                     {item.icon}
                                 </span>
                                 {isOpen && (
-                                    <span className="text-sm font-bold tracking-tight">
+                                    <span className="text-xs font-black uppercase tracking-widest">
                                         {item.label}
                                     </span>
-                                )}
-                                {isActive && (
-                                    <div className="absolute left-0 top-3 bottom-3 w-1 bg-brand-500 rounded-r-full" />
                                 )}
                             </>
                         )}
@@ -83,23 +80,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
             </nav>
 
             {/* Logout Button */}
-            <div className="px-3 pb-6">
+            <div className="px-2 pb-6">
                 <button 
                     onClick={logout}
                     className={cn(
-                        "flex items-center gap-4 px-4 py-4 w-full rounded-2xl transition-all group text-slate-400 hover:bg-error-light/10 hover:text-error",
+                        "flex items-center gap-4 px-4 py-6 w-full transition-all group text-slate-400 hover:text-black",
                         !isOpen && "justify-center"
                     )}
                 >
                     <ExitToAppIcon />
-                    {isOpen && <span className="text-sm font-bold tracking-tight">Logout</span>}
+                    {isOpen && <span className="text-xs font-black uppercase tracking-widest">Sign Out</span>}
                 </button>
 
                 {/* Footer */}
                 {isOpen && (
-                    <div className="mt-6 px-4">
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                            © 2026 Speedo Fleet v2.0
+                    <div className="mt-4 px-4 border-t border-slate-100 pt-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">
+                            v2.0.4 / System Ready
                         </p>
                     </div>
                 )}
@@ -109,4 +106,5 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
 };
 
 export default Sidebar;
+
 

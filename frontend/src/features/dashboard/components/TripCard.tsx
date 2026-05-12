@@ -29,13 +29,12 @@ const TripCard: React.FC<TripCardProps> = ({ trip, onDelete }) => {
                         <span>{formatDate(trip.startTime)}</span>
                     </div>
                 </div>
-                <IconButton 
-                    size="small" 
+                <button 
                     onClick={(e) => onDelete(e, trip._id)}
-                    className="text-slate-300 hover:text-error hover:bg-error-light/10 transition-colors"
+                    className="p-2 rounded-xl text-slate-300 hover:text-black hover:bg-slate-50 transition-colors"
                 >
                     <DeleteIcon sx={{ fontSize: 18 }} />
-                </IconButton>
+                </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
