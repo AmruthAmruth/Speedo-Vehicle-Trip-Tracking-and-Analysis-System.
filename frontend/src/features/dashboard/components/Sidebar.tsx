@@ -16,7 +16,7 @@ interface SidebarProps {
     onToggle: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     const { logout } = useAuth();
     
     const menuItems = [
@@ -28,14 +28,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
     ];
 
     return (
-        <aside 
-            className={cn(
-                "fixed top-0 left-0 z-40 h-screen transition-all duration-300 border-r border-slate-100 bg-white flex flex-col overflow-hidden",
-                isOpen ? "w-64 shadow-2xl shadow-slate-100" : "w-20"
-            )}
-        >
-            {/* Logo Area */}
-            <div className="flex items-center gap-4 px-6 py-10 mb-6">
+        <>
+            {/* Mobile Overlay */}
+            <div 
+                className={cn(
+                    "fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 lg:hidden",
+                    isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+                onClick={onToggle}
+            />
+
+            <aside 
+                className={cn(
+                    "fixed top-0 left-0 z-50 h-screen transition-all duration-300 border-r border-slate-100 bg-white flex flex-col overflow-hidden",
+                    "lg:translate-x-0",
+                    isOpen ? "w-64 translate-x-0" : "w-20 -translate-x-full lg:translate-x-0"
+                )}
+            >
+                {/* Logo Area */}
+                <div className="flex items-center gap-4 px-6 py-10 mb-6 shrink-0">
                 <div className="bg-black p-2.5 rounded-xl shadow-lg shadow-black/10">
                     <SpeedIcon className="text-white" sx={{ fontSize: 22 }} />
                 </div>

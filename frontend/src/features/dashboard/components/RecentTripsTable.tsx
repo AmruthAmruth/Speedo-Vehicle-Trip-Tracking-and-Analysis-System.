@@ -107,14 +107,14 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({ trips }) => {
             </div>
 
             {/* Premium Pagination Footer */}
-            <div className="flex items-center justify-between px-6 py-6 border-t border-slate-50 bg-white">
+            <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-6 border-t border-slate-50 bg-white gap-4">
                 <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest text-center sm:text-left">
                         Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, trips.length)} of {trips.length}
                     </p>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3">
                     <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}

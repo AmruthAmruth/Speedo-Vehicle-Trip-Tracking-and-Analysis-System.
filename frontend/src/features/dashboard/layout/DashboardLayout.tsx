@@ -21,32 +21,43 @@ const DashboardLayout: React.FC = () => {
         setIsSidebarOpen(!isSidebarOpen);
     };
 
+    // Auto-close sidebar on mobile after navigation
+    useEffect(() => {
+        if (window.innerWidth < 1024 && isSidebarOpen) {
+            setIsSidebarOpen(false);
+        }
+    }, [location.pathname]);
+
     const getPageTitle = () => {
-        if (location.pathname === '/dashboard') return 'Fleet Overview';
-        if (location.pathname === '/dashboard/upload') return 'Data Ingestion';
-        if (location.pathname === '/dashboard/trips') return 'Operational History';
-        if (location.pathname === '/dashboard/drivers') return 'Fleet Intelligence';
-        if (location.pathname === '/dashboard/live') return 'Live Fleet Monitor';
-        if (location.pathname.startsWith('/dashboard/trips/')) return 'Session Analysis';
-        return 'System Console';
+        if (location.pathname === '/dashboard') return 'Overview';
+        if (location.pathname === '/dashboard/upload') return 'Ingestion';
+        if (location.pathname === '/dashboard/trips') return 'History';
+        if (location.pathname === '/dashboard/drivers') return 'Intelligence';
+        if (location.pathname === '/dashboard/live') return 'Monitor';
+        if (location.pathname.startsWith('/dashboard/trips/')) return 'Analysis';
+        return 'Console';
     };
 
     return (
         <div className="flex min-h-screen bg-[#fafafa]">
             <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
 
-            <div className={`flex-grow flex flex-col transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
+            <div className={cn(
+                "flex-grow flex flex-col transition-all duration-300 w-full min-w-0",
+                "lg:ml-20",
+                isSidebarOpen && "lg:ml-64"
+            )}>
                 {/* Modern Header */}
-                <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 px-8 flex items-center justify-between">
-                    <div className="flex items-center gap-6">
+                <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 px-4 md:px-8 flex items-center justify-between">
+                    <div className="flex items-center gap-4 md:gap-6">
                         <button 
                             onClick={toggleSidebar}
                             className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-black"
                         >
                             <MenuIcon />
                         </button>
-                        <div className="h-6 w-[1px] bg-slate-100" />
-                        <h1 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900">
+                        <div className="hidden xs:block h-6 w-[1px] bg-slate-100" />
+                        <h1 className="text-[10px] md:text-sm font-bold uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-900 truncate">
                             {getPageTitle()}
                         </h1>
                     </div>

@@ -113,17 +113,17 @@ const TripList: React.FC = () => {
                         Showing {(currentPage - 1) * tripsPerPage + 1}-{Math.min(trips.length, currentPage * tripsPerPage)} of {trips.length} sessions
                     </p>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4">
                         <Button 
                             variant="outline"
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
-                            className="rounded-xl border-slate-100 h-10 px-6"
+                            className="rounded-xl border-slate-100 h-10 px-4 sm:px-6 text-xs"
                         >
                             Prev
                         </Button>
                         
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
                             {Array.from({ length: totalPages }, (_, i) => i + 1)
                                 .filter(p => p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1))
                                 .map((p, i, arr) => (
@@ -131,7 +131,7 @@ const TripList: React.FC = () => {
                                         {i > 0 && arr[i-1] !== p - 1 && <span className="self-center text-slate-300">...</span>}
                                         <button
                                             onClick={() => setCurrentPage(p)}
-                                            className={`w-10 h-10 rounded-xl font-bold transition-all text-xs ${
+                                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl font-bold transition-all text-xs ${
                                                 currentPage === p 
                                                 ? 'bg-black text-white shadow-soft' 
                                                 : 'text-slate-400 hover:bg-slate-50'
@@ -148,7 +148,7 @@ const TripList: React.FC = () => {
                             variant="outline"
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}
-                            className="rounded-xl border-slate-100 h-10 px-6"
+                            className="rounded-xl border-slate-100 h-10 px-4 sm:px-6 text-xs"
                         >
                             Next
                         </Button>
