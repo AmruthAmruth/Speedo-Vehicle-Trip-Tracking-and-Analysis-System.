@@ -17,11 +17,18 @@ import {
     CircularProgress,
     Box,
     Typography,
-    Button
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-toastify';
 import { socketService } from '../../../services/socketService';
+import { 
+  Button, 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  Badge,
+} from '../../../components/shared/ui';
 
 const LiveTracking: React.FC = () => {
     const [activeTrips, setActiveTrips] = useState<Trip[]>([]);
@@ -34,7 +41,6 @@ const LiveTracking: React.FC = () => {
     useEffect(() => {
         loadTrips();
         
-        // Real-time updates via Socket
         socketService.connect();
         
         const userData = localStorage.getItem('user');
@@ -44,9 +50,7 @@ const LiveTracking: React.FC = () => {
         }
 
         socketService.onTripStarted((trip) => {
-            console.log('🚀 Trip started real-time:', trip);
             setActiveTrips(prev => {
-                // Avoid duplicates
                 if (prev.find(t => t._id === trip._id)) return prev;
                 return [trip, ...prev];
             });
@@ -54,13 +58,12 @@ const LiveTracking: React.FC = () => {
         });
 
         socketService.onTripStopped((trip) => {
-            console.log('🏁 Trip stopped real-time:', trip);
             setActiveTrips(prev => prev.filter(t => t._id !== trip._id));
             setPreviousLiveTrips(prev => [trip, ...prev].slice(0, 5));
             toast.success(`Tracking session ended: ${trip.name}`);
         });
 
-        const interval = setInterval(loadTrips, 30000); // Polling as fallback
+        const interval = setInterval(loadTrips, 30000);
         return () => {
             clearInterval(interval);
         };
@@ -126,105 +129,127 @@ const LiveTracking: React.FC = () => {
     };
 
     const renderTripCard = (trip: Trip) => (
-        <div
-            key={trip._id}
-            className="clean-trip-card"
+        <Card 
+            key={trip._id} 
+            className="cursor-pointer overflow-hidden border-slate-100"
             onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
         >
-            <div className="card-top">
-                <div className="trip-info">
-                    <span className="live-pill">LIVE</span>
-                    <h4 className="trip-name">{trip.name}</h4>
-                    <p className="device-name">{trip.metadata?.deviceName || 'Primary Device'}</p>
+            <div className="flex justify-between items-start mb-4">
+                <div className="space-y-1">
+                    <Badge variant="success" pulse size="sm">LIVE</Badge>
+                    <h4 className="text-lg font-bold text-slate-900 line-clamp-1">{trip.name}</h4>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        {trip.metadata?.deviceName || 'Primary Device'}
+                    </p>
                 </div>
-                <div className="trip-icon">
+                <div className="p-2 bg-slate-50 rounded-lg">
                     <DirectionsCarIcon sx={{ fontSize: 20, color: '#94a3b8' }} />
                 </div>
             </div>
             
-            <div className="card-details">
-                <div className="detail-item">
-                    <span className="label">Started</span>
-                    <span className="value">{new Date(trip.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
+                <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Started</span>
+                    <p className="text-sm font-semibold text-slate-700">
+                        {new Date(trip.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                 </div>
-                <div className="detail-item">
-                    <span className="label">Mode</span>
-                    <span className="value">{trip.metadata?.source === 'simulation' ? 'Simulation' : 'Live GPS'}</span>
+                <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Mode</span>
+                    <p className="text-sm font-semibold text-slate-700">
+                        {trip.metadata?.source === 'simulation' ? 'Simulation' : 'Live GPS'}
+                    </p>
                 </div>
             </div>
 
-            <div className="card-action">
+            <div className="mt-4 flex items-center justify-between text-brand-500 font-bold text-xs uppercase tracking-widest group">
                 <span>View Real-time Feed</span>
-                <ArrowForwardIosIcon sx={{ fontSize: 12 }} />
+                <ArrowForwardIosIcon sx={{ fontSize: 10 }} className="transition-transform group-hover:translate-x-1" />
             </div>
-        </div>
+        </Card>
     );
 
     if (loading) {
         return (
-            <div className="loading-state">
-                <div className="minimal-spinner"></div>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-brand-500" />
+                <p className="text-sm font-medium text-slate-500 animate-pulse">Initializing feed...</p>
             </div>
         );
     }
 
     return (
-        <div className="live-tracking-minimal">
+        <div className="max-w-6xl mx-auto px-6 py-10 animate-fade-in">
             {/* Header */}
-            <header className="minimal-header">
-                <div className="title-section">
-                    <h1>Live Tracking</h1>
-                    <p>Monitor your fleet's active sessions in real-time.</p>
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+                <div className="space-y-2">
+                    <h1 className="text-4xl font-display font-bold text-slate-900 tracking-tight">Live Tracking</h1>
+                    <p className="text-slate-500 text-lg">Monitor your fleet's active sessions in real-time.</p>
                 </div>
-                <button className="minimal-btn-primary" onClick={handleStartLiveTracking}>
-                    <GpsFixedIcon sx={{ fontSize: 18 }} />
-                    <span>Start New Session</span>
-                </button>
+                <Button 
+                    size="lg" 
+                    onClick={handleStartLiveTracking}
+                    leftIcon={<GpsFixedIcon sx={{ fontSize: 20 }} />}
+                    className="shadow-glow"
+                >
+                    Start New Session
+                </Button>
             </header>
 
-            <main className="minimal-content">
+            <main className="space-y-16">
                 {/* Active Section */}
-                <section className="minimal-section">
-                    <div className="section-title-bar">
-                        <h2>Active Vehicles</h2>
-                        <span className="count-badge">{activeTrips.length}</span>
+                <section>
+                    <div className="flex items-center gap-3 mb-8">
+                        <h2 className="text-xl font-bold text-slate-800">Active Vehicles</h2>
+                        <Badge variant="secondary">{activeTrips.length}</Badge>
                     </div>
 
                     {activeTrips.length === 0 ? (
-                        <div className="minimal-empty-state">
-                            <div className="empty-icon-box">
-                                <SensorsIcon sx={{ fontSize: 32, color: '#e2e8f0' }} />
+                        <div className="flex flex-col items-center justify-center p-16 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 text-center">
+                            <div className="p-4 bg-white rounded-2xl shadow-sm mb-4">
+                                <SensorsIcon sx={{ fontSize: 40, color: '#cbd5e1' }} />
                             </div>
-                            <p>No active sessions found. Start tracking to see live data.</p>
-                            <button className="text-btn" onClick={handleStartLiveTracking}>Initiate Tracking</button>
+                            <p className="text-slate-500 font-medium mb-6">No active sessions found. Start tracking to see live data.</p>
+                            <Button variant="outline" onClick={handleStartLiveTracking}>
+                                Initiate Tracking
+                            </Button>
                         </div>
                     ) : (
-                        <div className="minimal-grid">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {activeTrips.map(trip => renderTripCard(trip))}
                         </div>
                     )}
                 </section>
 
-                {/* History Section - Very Subtle */}
+                {/* History Section */}
                 {previousLiveTrips.length > 0 && (
-                    <section className="minimal-section history">
-                        <div className="section-title-bar">
-                            <h2>Recent Activity</h2>
+                    <section className="animate-slide-up">
+                        <div className="flex items-center gap-3 mb-6">
+                            <h2 className="text-xl font-bold text-slate-800">Recent Activity</h2>
                         </div>
-                        <div className="minimal-list">
-                            {previousLiveTrips.map((trip) => (
-                                <div key={trip._id} className="list-item" onClick={() => navigate(`/dashboard/trips/${trip._id}`)}>
-                                    <div className="item-main">
-                                        <div className="item-icon">
-                                            <HistoryIcon sx={{ fontSize: 18, color: '#94a3b8' }} />
+                        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-premium">
+                            {previousLiveTrips.map((trip, idx) => (
+                                <div 
+                                    key={trip._id} 
+                                    className={`flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors ${idx !== previousLiveTrips.length - 1 ? 'border-b border-slate-50' : ''}`}
+                                    onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-slate-50 rounded-xl text-slate-400 group-hover:text-brand-500 transition-colors">
+                                            <HistoryIcon sx={{ fontSize: 20 }} />
                                         </div>
-                                        <div className="item-text">
-                                            <span className="item-title">{trip.name}</span>
-                                            <span className="item-subtitle">{trip.metadata?.deviceName || 'Mobile'} • {new Date(trip.startTime).toLocaleDateString()}</span>
+                                        <div>
+                                            <p className="font-bold text-slate-900">{trip.name}</p>
+                                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                                                {trip.metadata?.deviceName || 'Mobile'} • {new Date(trip.startTime).toLocaleDateString()}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="item-meta">
-                                        <span className="item-stat">{(trip.totalDistance || 0).toFixed(1)} km</span>
+                                    <div className="flex items-center gap-6">
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-slate-700">{(trip.totalDistance || 0).toFixed(1)} km</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Distance</p>
+                                        </div>
                                         <ArrowForwardIosIcon sx={{ fontSize: 12, color: '#cbd5e1' }} />
                                     </div>
                                 </div>
@@ -234,416 +259,75 @@ const LiveTracking: React.FC = () => {
                 )}
             </main>
 
-            {/* Clean QR Modal */}
+            {/* QR Modal */}
             <Dialog
                 open={qrModalOpen}
                 onClose={() => setQrModalOpen(false)}
                 PaperProps={{
                     sx: { 
-                        borderRadius: '20px', 
-                        maxWidth: '400px',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                        border: '1px solid #f1f5f9'
+                        borderRadius: '24px', 
+                        maxWidth: '440px',
+                        width: '100%',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                        m: 2
                     }
                 }}
             >
-                <div className="minimal-modal">
-                    <div className="modal-top">
-                        <h3>Link Device</h3>
-                        <IconButton onClick={() => setQrModalOpen(false)} size="small">
+                <div className="p-8">
+                    <div className="flex justify-between items-center mb-8">
+                        <h3 className="text-2xl font-display font-bold text-slate-900">Link Device</h3>
+                        <IconButton 
+                            onClick={() => setQrModalOpen(false)} 
+                            size="small"
+                            className="hover:bg-slate-100 rounded-full"
+                        >
                             <CloseIcon sx={{ fontSize: 20 }} />
                         </IconButton>
                     </div>
-                    <div className="modal-body">
-                        <div className="qr-container-minimal" style={{ minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+                    <div className="flex flex-col items-center text-center">
+                        <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 mb-8 w-full max-w-[240px] aspect-square flex items-center justify-center">
                             {isGenerating ? (
-                                <CircularProgress size={40} thickness={4} sx={{ color: '#6366f1' }} />
+                                <CircularProgress size={48} thickness={4} sx={{ color: '#435cf0' }} />
                             ) : qrError ? (
-                                <Box sx={{ textAlign: 'center', p: 2 }}>
-                                    <ErrorOutlineIcon sx={{ fontSize: 40, color: '#ef4444', mb: 1 }} />
-                                    <Typography variant="body2" color="error">{qrError}</Typography>
-                                </Box>
+                                <div className="space-y-3">
+                                    <ErrorOutlineIcon sx={{ fontSize: 48, color: '#ef4444' }} />
+                                    <p className="text-sm font-medium text-error">{qrError}</p>
+                                </div>
                             ) : (
-                                <QRCodeSVG value={trackingUrl} size={180} level="M" />
+                                <div className="p-2 bg-white rounded-xl shadow-sm">
+                                    <QRCodeSVG value={trackingUrl} size={180} level="M" />
+                                </div>
                             )}
                         </div>
                         
                         {!qrError && !isGenerating && (
-                            <>
-                                <p className="modal-hint">Scan with your mobile to link this device instantly.</p>
-                                <Box sx={{ mb: 3 }}>
-                                    <Button 
-                                        variant="outlined" 
-                                        size="small" 
-                                        startIcon={<ContentCopyIcon />} 
-                                        onClick={copyToClipboard}
-                                        sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}
-                                    >
-                                        Copy Tracking Link
-                                    </Button>
-                                </Box>
-                            </>
+                            <div className="space-y-6 w-full">
+                                <p className="text-slate-500 leading-relaxed font-medium">
+                                    Scan the code with your mobile device to link it instantly and start tracking.
+                                </p>
+                                
+                                <Button 
+                                    variant="outline" 
+                                    className="w-full py-6 rounded-2xl border-slate-200"
+                                    leftIcon={<ContentCopyIcon sx={{ fontSize: 18 }} />} 
+                                    onClick={copyToClipboard}
+                                >
+                                    Copy Link
+                                </Button>
+                                
+                                <Button className="w-full py-6 rounded-2xl" onClick={() => setQrModalOpen(false)}>
+                                    Done
+                                </Button>
+                            </div>
                         )}
-                        
-                        <div className="modal-actions-v2">
-                            <button className="minimal-btn-primary full-width" onClick={() => setQrModalOpen(false)}>
-                                Done
-                            </button>
-                        </div>
                     </div>
                 </div>
             </Dialog>
-
-            <style>{`
-                .live-tracking-minimal {
-                    padding: 40px;
-                    max-width: 1100px;
-                    margin: 0 auto;
-                    color: #1e293b;
-                }
-
-                /* Header */
-                .minimal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-end;
-                    margin-bottom: 64px;
-                }
-
-                .minimal-header h1 {
-                    font-size: 32px;
-                    font-weight: 700;
-                    margin: 0 0 8px 0;
-                    letter-spacing: -0.02em;
-                }
-
-                .minimal-header p {
-                    color: #64748b;
-                    margin: 0;
-                    font-size: 15px;
-                }
-
-                .minimal-btn-primary {
-                    background: #0f172a;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 10px;
-                    font-weight: 600;
-                    font-size: 14px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                }
-
-                .minimal-btn-primary:hover {
-                    background: #1e293b;
-                }
-
-                /* Sections */
-                .minimal-section {
-                    margin-bottom: 56px;
-                }
-
-                .section-title-bar {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                }
-
-                .section-title-bar h2 {
-                    font-size: 18px;
-                    font-weight: 700;
-                    margin: 0;
-                    color: #475569;
-                }
-
-                .count-badge {
-                    background: #f1f5f9;
-                    color: #64748b;
-                    font-size: 12px;
-                    font-weight: 700;
-                    padding: 2px 8px;
-                    border-radius: 6px;
-                }
-
-                /* Grid Cards */
-                .minimal-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                    gap: 24px;
-                }
-
-                .clean-trip-card {
-                    background: white;
-                    border: 1px solid #f1f5f9;
-                    border-radius: 16px;
-                    padding: 24px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-
-                .clean-trip-card:hover {
-                    border-color: #e2e8f0;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-                    transform: translateY(-2px);
-                }
-
-                .card-top {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 20px;
-                }
-
-                .live-pill {
-                    display: inline-block;
-                    font-size: 10px;
-                    font-weight: 800;
-                    color: #10b981;
-                    background: #ecfdf5;
-                    padding: 2px 8px;
-                    border-radius: 100px;
-                    margin-bottom: 8px;
-                }
-
-                .trip-name {
-                    font-size: 18px;
-                    font-weight: 700;
-                    margin: 0;
-                }
-
-                .device-name {
-                    font-size: 13px;
-                    color: #94a3b8;
-                    margin: 4px 0 0 0;
-                }
-
-                .card-details {
-                    display: flex;
-                    gap: 24px;
-                    margin-bottom: 20px;
-                    padding-bottom: 20px;
-                    border-bottom: 1px solid #f8fafc;
-                }
-
-                .detail-item {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .detail-item .label {
-                    font-size: 11px;
-                    color: #94a3b8;
-                    text-transform: uppercase;
-                    font-weight: 700;
-                    letter-spacing: 0.05em;
-                }
-
-                .detail-item .value {
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: #475569;
-                }
-
-                .card-action {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: #6366f1;
-                }
-
-                /* Empty State */
-                .minimal-empty-state {
-                    text-align: center;
-                    padding: 64px 24px;
-                    background: #fbfcfd;
-                    border: 1px dashed #e2e8f0;
-                    border-radius: 20px;
-                }
-
-                .empty-icon-box {
-                    margin-bottom: 16px;
-                }
-
-                .minimal-empty-state p {
-                    color: #94a3b8;
-                    font-size: 14px;
-                    margin-bottom: 20px;
-                }
-
-                .text-btn {
-                    background: none;
-                    border: none;
-                    color: #6366f1;
-                    font-weight: 700;
-                    font-size: 14px;
-                    cursor: pointer;
-                    text-decoration: underline;
-                }
-
-                /* History List */
-                .minimal-list {
-                    background: white;
-                    border: 1px solid #f1f5f9;
-                    border-radius: 16px;
-                    overflow: hidden;
-                }
-
-                .list-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 16px 24px;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                    border-bottom: 1px solid #f8fafc;
-                }
-
-                .list-item:last-child {
-                    border-bottom: none;
-                }
-
-                .list-item:hover {
-                    background: #fbfcfd;
-                }
-
-                .item-main {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                }
-
-                .item-icon {
-                    width: 36px;
-                    height: 36px;
-                    background: #f8fafc;
-                    border-radius: 10px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .item-text {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .item-title {
-                    font-size: 15px;
-                    font-weight: 600;
-                }
-
-                .item-subtitle {
-                    font-size: 12px;
-                    color: #94a3b8;
-                }
-
-                .item-meta {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                }
-
-                .item-stat {
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: #475569;
-                }
-
-                /* Modal */
-                .minimal-modal {
-                    padding: 32px;
-                }
-
-                .modal-top {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 24px;
-                }
-
-                .modal-top h3 {
-                    margin: 0;
-                    font-size: 20px;
-                    font-weight: 700;
-                }
-
-                .modal-body {
-                    text-align: center;
-                }
-
-                .qr-container-minimal {
-                    padding: 16px;
-                    background: white;
-                    border: 1px solid #f1f5f9;
-                    border-radius: 16px;
-                    display: inline-block;
-                    margin-bottom: 24px;
-                }
-
-                .modal-hint {
-                    font-size: 14px;
-                    color: #64748b;
-                    line-height: 1.5;
-                    margin-bottom: 32px;
-                }
-
-                .minimal-btn-secondary {
-                    width: 100%;
-                    padding: 12px;
-                    background: #f1f5f9;
-                    border: none;
-                    border-radius: 10px;
-                    font-weight: 700;
-                    color: #475569;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                }
-
-                .minimal-btn-secondary:hover {
-                    background: #e2e8f0;
-                }
-
-                .modal-actions-v2 {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .full-width {
-                    width: 100%;
-                    justify-content: center;
-                }
-
-                /* Loading */
-                .loading-state {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 60vh;
-                }
-
-                .minimal-spinner {
-                    width: 32px;
-                    height: 32px;
-                    border: 2px solid #f1f5f9;
-                    border-top: 2px solid #6366f1;
-                    border-radius: 50%;
-                    animation: spin 0.8s linear infinite;
-                }
-
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
         </div>
     );
 };
 
 export default LiveTracking;
+
 

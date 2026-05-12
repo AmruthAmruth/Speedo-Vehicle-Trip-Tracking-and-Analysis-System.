@@ -3,7 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { Trip } from '../../../types/trip.types';
 import { formatDistance, formatDuration, calculateTripDuration } from '../../../utils/tripUtils';
-import Badge from '../../../components/shared/ui/Badge';
+import { 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableHead, 
+    TableHeader, 
+    TableRow,
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    Badge,
+    Button
+} from '../../../components/shared/ui';
 
 interface RecentTripsTableProps {
     trips: Trip[];
@@ -13,77 +26,84 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({ trips }) => {
     const navigate = useNavigate();
 
     return (
-        <div className="dashboard-card">
-            <div className="card-header">
+        <Card className="p-0 border-slate-100 overflow-hidden shadow-premium">
+            <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
                 <div>
-                    <h3 className="card-title">Recent Trips</h3>
-                    <p className="card-subtitle">Your latest 5 trips</p>
+                    <CardTitle>Recent Fleet Activity</CardTitle>
+                    <CardDescription>A summary of the last 5 trips recorded</CardDescription>
                 </div>
-                <button className="btn-secondary" onClick={() => navigate('/dashboard/trips')}>
-                    View All
-                </button>
-            </div>
+                <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/trips')}>
+                    View All Activity
+                </Button>
+            </CardHeader>
 
             {trips.length === 0 ? (
-                <div className="empty-state">
-                    <div className="empty-icon">📍</div>
-                    <h4 className="empty-title">No trips yet</h4>
-                    <p className="empty-description">Upload your first GPS trip data to get started</p>
-                    <button className="btn-primary" onClick={() => navigate('/dashboard/upload')}>
-                        <UploadFileIcon />
+                <div className="py-20 text-center flex flex-col items-center justify-center">
+                    <div className="text-5xl mb-4 opacity-20 grayscale">📍</div>
+                    <h4 className="text-lg font-bold text-slate-900 mb-1">No trips yet</h4>
+                    <p className="text-slate-500 text-sm mb-6">Upload your first GPS trip data to get started</p>
+                    <Button variant="primary" size="sm" onClick={() => navigate('/dashboard/upload')}>
+                        <UploadFileIcon className="mr-2 h-4 w-4" />
                         Upload Trip
-                    </button>
+                    </Button>
                 </div>
             ) : (
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr className="border-b-2 border-light-border">
-                                <th className="p-3 text-left text-text-secondary font-semibold">Trip Name</th>
-                                <th className="p-3 text-left text-text-secondary font-semibold">Date</th>
-                                <th className="p-3 text-left text-text-secondary font-semibold">Distance</th>
-                                <th className="p-3 text-left text-text-secondary font-semibold">Duration</th>
-                                <th className="p-3 text-left text-text-secondary font-semibold">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Trip Name</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Distance</TableHead>
+                                <TableHead>Duration</TableHead>
+                                <TableHead className="text-right">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {trips.map((trip) => (
-                                <tr key={trip._id} className="border-b border-light-border hover:bg-slate-50 transition-colors">
-                                    <td className="p-4">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span className="font-semibold text-text-primary">{trip.name}</span>
+                                <TableRow key={trip._id} className="group">
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-bold text-slate-800">{trip.name}</span>
                                             {trip.isActive && (
-                                                <Badge color="red" pulse>
+                                                <Badge variant="error" pulse size="sm">
                                                     LIVE
                                                 </Badge>
                                             )}
                                         </div>
-                                    </td>
-                                    <td className="p-4 text-text-secondary">
+                                    </TableCell>
+                                    <TableCell className="text-slate-500 font-medium">
                                         {new Date(trip.startTime).toLocaleDateString()}
-                                    </td>
-                                    <td className="p-4 text-text-secondary">
+                                    </TableCell>
+                                    <TableCell className="text-slate-500 font-medium">
                                         {formatDistance(trip.totalDistance)}
-                                    </td>
-                                    <td className="p-4 text-text-secondary">
-                                        {trip.isActive ? 'Ongoing' : formatDuration(calculateTripDuration(trip.startTime, trip.endTime))}
-                                    </td>
-                                    <td className="p-4">
-                                        <button
-                                            className="btn-secondary text-sm px-4 py-2"
+                                    </TableCell>
+                                    <TableCell className="text-slate-500 font-medium">
+                                        {trip.isActive ? (
+                                            <span className="text-brand-500 font-bold">Ongoing</span>
+                                        ) : (
+                                            formatDuration(calculateTripDuration(trip.startTime, trip.endTime))
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-brand-600 hover:text-brand-700 hover:bg-brand-50 font-bold"
                                             onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
                                         >
-                                            View Details
-                                        </button>
-                                    </td>
-                                </tr>
+                                            Details
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
                 </div>
             )}
-        </div>
+        </Card>
     );
 };
 
 export default RecentTripsTable;
+

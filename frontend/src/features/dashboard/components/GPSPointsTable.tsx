@@ -1,6 +1,20 @@
 import React from 'react';
 import { GPSPoint } from '../../../types/trip.types';
 import { formatSpeed } from '../../../utils/tripUtils';
+import { 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableHead, 
+    TableHeader, 
+    TableRow,
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    Badge,
+    Button
+} from '../../../components/shared/ui';
 
 interface GPSPointsTableProps {
     gpsPoints: GPSPoint[];
@@ -22,104 +36,104 @@ const GPSPointsTable: React.FC<GPSPointsTableProps> = ({
     const paginatedPoints = gpsPoints.slice(startIndex, startIndex + itemsPerPage);
 
     return (
-        <div className="dashboard-card">
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Card className="p-0 border-slate-100 overflow-hidden shadow-premium">
+            <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
                 <div>
-                    <h3 className="card-title">GPS Points</h3>
-                    <p className="card-subtitle">{gpsPoints.length} points recorded</p>
+                    <CardTitle>GPS Data Stream</CardTitle>
+                    <CardDescription>{gpsPoints.length} points recorded for this session</CardDescription>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', color: '#64748b' }}>Rows per page:</span>
+                <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Rows:</span>
                     <select 
                         value={itemsPerPage} 
                         onChange={(e) => {
                             setItemsPerPage(Number(e.target.value));
                             setCurrentPage(1);
                         }}
-                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}
+                        className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-brand-500/20"
                     >
                         {[10, 25, 50, 100].map(count => (
                             <option key={count} value={count}>{count}</option>
                         ))}
                     </select>
                 </div>
-            </div>
+            </CardHeader>
 
-            <div style={{ overflowX: 'auto' }}>
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="border-b-2 border-light-border">
-                            <th className="p-3 text-left text-text-secondary font-semibold">Timestamp</th>
-                            <th className="p-3 text-left text-text-secondary font-semibold">Coordinates</th>
-                            <th className="p-3 text-left text-text-secondary font-semibold">Speed</th>
-                            <th className="p-3 text-left text-text-secondary font-semibold">Ignition</th>
-                            <th className="p-3 text-left text-text-secondary font-semibold">Battery</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Timestamp</TableHead>
+                            <TableHead>Coordinates</TableHead>
+                            <TableHead>Speed</TableHead>
+                            <TableHead>Ignition</TableHead>
+                            <TableHead>Battery</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {paginatedPoints.map((point) => (
-                            <tr key={point._id} className="border-b border-light-border hover:bg-slate-50 transition-colors">
-                                <td className="p-3 text-sm text-text-primary">
+                            <TableRow key={point._id} className="group">
+                                <TableCell className="font-medium text-slate-700">
                                     {new Date(point.timestamp).toLocaleString()}
-                                </td>
-                                <td className="p-3 text-sm text-text-secondary">
+                                </TableCell>
+                                <TableCell className="font-mono text-xs text-slate-500">
                                     {point.latitude.toFixed(6)}, {point.longitude.toFixed(6)}
-                                </td>
-                                <td className="p-3 text-sm">
-                                    <span style={{ 
-                                        fontWeight: 600,
-                                        color: point.speed > 80 ? '#EF4444' : '#10B981'
-                                    }}>
+                                </TableCell>
+                                <TableCell>
+                                    <span className={point.speed > 80 ? 'text-error font-bold' : 'text-success-dark font-bold'}>
                                         {formatSpeed(point.speed)}
                                     </span>
-                                </td>
-                                <td className="p-3 text-sm">
-                                    <span style={{
-                                        padding: '2px 8px',
-                                        borderRadius: '12px',
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        background: point.ignition ? '#DCFCE7' : '#FEE2E2',
-                                        color: point.ignition ? '#166534' : '#991B1B'
-                                    }}>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={point.ignition ? 'success' : 'error'} size="sm">
                                         {point.ignition ? 'ON' : 'OFF'}
-                                    </span>
-                                </td>
-                                <td className="p-3 text-sm text-text-secondary">
-                                    {(point as any).batteryLevel ? `${(point as any).batteryLevel}%` : 'N/A'}
-                                </td>
-                            </tr>
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-slate-500">
+                                    {(point as any).batteryLevel ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-brand-500" 
+                                                    style={{ width: `${(point as any).batteryLevel}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] font-bold">{(point as any).batteryLevel}%</span>
+                                        </div>
+                                    ) : '—'}
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
 
-            {/* Pagination */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px' }}>
-                <span style={{ fontSize: '14px', color: '#64748b' }}>
-                    Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, gpsPoints.length)} of {gpsPoints.length}
+            <div className="p-4 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Showing <span className="text-slate-900">{startIndex + 1}</span> to <span className="text-slate-900">{Math.min(startIndex + itemsPerPage, gpsPoints.length)}</span> of <span className="text-slate-900">{gpsPoints.length}</span>
                 </span>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                    <button 
-                        className="btn-secondary" 
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(currentPage - 1)}
-                        style={{ padding: '6px 12px', fontSize: '14px' }}
                     >
-                        Prev
-                    </button>
-                    <button 
-                        className="btn-secondary" 
+                        Previous
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage(currentPage + 1)}
-                        style={{ padding: '6px 12px', fontSize: '14px' }}
                     >
                         Next
-                    </button>
+                    </Button>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 };
 
 export default GPSPointsTable;
+

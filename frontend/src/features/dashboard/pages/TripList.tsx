@@ -4,6 +4,7 @@ import { useTripList } from '../../../hooks/useTripList';
 import SearchIcon from '@mui/icons-material/Search';
 import ConfirmationModal from '../../../components/shared/ConfirmationModal';
 import TripCard from '../components/TripCard';
+import { Button, Input, Card } from '../../../components/shared/ui';
 
 const TripList: React.FC = () => {
     const { 
@@ -38,8 +39,8 @@ const TripList: React.FC = () => {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-                <div className="spinner"></div>
+            <div className="flex justify-center items-center py-20">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-brand-500" />
             </div>
         );
     }
@@ -48,62 +49,41 @@ const TripList: React.FC = () => {
     const paginatedTrips = trips.slice((currentPage - 1) * tripsPerPage, currentPage * tripsPerPage);
 
     return (
-        <div className="trip-list">
+        <div className="space-y-8 animate-fade-in">
             {/* Search Bar */}
-            <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-                <div style={{ position: 'relative' }}>
-                    <SearchIcon
-                        style={{
-                            position: 'absolute',
-                            left: '16px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            color: '#718096',
-                        }}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Search trips by name or date..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        style={{
-                            width: '100%',
-                            padding: '14px 14px 14px 48px',
-                            border: '2px solid #e2e8f0',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            outline: 'none',
-                            transition: 'border-color 0.3s ease',
-                        }}
-                    />
-                </div>
-            </div>
+            <Card className="p-0 border-none shadow-premium overflow-hidden">
+                <Input
+                    leftIcon={<SearchIcon className="text-slate-400" />}
+                    placeholder="Search trips by name or date..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                    }}
+                    className="h-14 rounded-none border-none text-base pl-12 focus-visible:ring-0"
+                />
+            </Card>
 
             {/* Trips Grid */}
             {trips.length === 0 ? (
-                <div className="dashboard-card">
-                    <div className="empty-state">
-                        <div className="empty-icon">🚗</div>
-                        <h4 className="empty-title">
-                            {searchQuery ? 'No trips found' : 'No trips yet'}
-                        </h4>
-                        <p className="empty-description">
-                            {searchQuery
-                                ? 'Try adjusting your search query'
-                                : 'Upload your first GPS trip data to get started'}
-                        </p>
-                        {!searchQuery && (
-                            <button className="btn-primary" onClick={() => navigate('/dashboard/upload')}>
-                                Upload Trip
-                            </button>
-                        )}
-                    </div>
-                </div>
+                <Card className="py-20 text-center flex flex-col items-center justify-center">
+                    <div className="text-6xl mb-4 opacity-20 grayscale">🚗</div>
+                    <h4 className="text-xl font-bold text-slate-900 mb-2">
+                        {searchQuery ? 'No trips found' : 'No trips yet'}
+                    </h4>
+                    <p className="text-slate-500 max-w-xs mx-auto mb-8">
+                        {searchQuery
+                            ? 'Try adjusting your search query to find what you are looking for.'
+                            : 'Upload your first GPS trip data to get started with fleet analytics.'}
+                    </p>
+                    {!searchQuery && (
+                        <Button variant="primary" size="lg" onClick={() => navigate('/dashboard/upload')}>
+                            Upload Trip Data
+                        </Button>
+                    )}
+                </Card>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {paginatedTrips.map((trip) => (
                         <TripCard 
                             key={trip._id} 
@@ -116,46 +96,33 @@ const TripList: React.FC = () => {
 
             {/* Pagination */}
             {trips.length > tripsPerPage && (
-                <div style={{ 
-                    marginTop: '32px', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center', 
-                    gap: '20px' 
-                }}>
-                    <div style={{ color: '#718096', fontSize: '14px' }}>
-                        Showing <b>{(currentPage - 1) * tripsPerPage + 1}-{Math.min(trips.length, currentPage * tripsPerPage)}</b> of <b>{trips.length}</b> trips
-                    </div>
+                <div className="mt-12 flex flex-col items-center gap-6">
+                    <p className="text-sm text-slate-500 font-medium">
+                        Showing <span className="text-slate-900 font-bold">{(currentPage - 1) * tripsPerPage + 1}-{Math.min(trips.length, currentPage * tripsPerPage)}</span> of <span className="text-slate-900 font-bold">{trips.length}</span> trips
+                    </p>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
+                    <div className="flex items-center gap-4">
+                        <Button 
+                            variant="outline"
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
-                            className="btn-secondary"
-                            style={{ padding: '8px 16px' }}
                         >
                             Previous
-                        </button>
+                        </Button>
                         
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                        <div className="flex gap-2">
                             {Array.from({ length: totalPages }, (_, i) => i + 1)
                                 .filter(p => p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1))
                                 .map((p, i, arr) => (
                                     <React.Fragment key={p}>
-                                        {i > 0 && arr[i-1] !== p - 1 && <span style={{ alignSelf: 'center' }}>...</span>}
+                                        {i > 0 && arr[i-1] !== p - 1 && <span className="self-center text-slate-300">...</span>}
                                         <button
                                             onClick={() => setCurrentPage(p)}
-                                            style={{
-                                                width: '40px',
-                                                height: '40px',
-                                                borderRadius: '8px',
-                                                border: '1px solid',
-                                                borderColor: currentPage === p ? '#6366f1' : '#e2e8f0',
-                                                background: currentPage === p ? '#6366f1' : '#ffffff',
-                                                color: currentPage === p ? '#ffffff' : '#475569',
-                                                fontWeight: 600,
-                                                cursor: 'pointer'
-                                            }}
+                                            className={`w-10 h-10 rounded-xl font-bold transition-all ${
+                                                currentPage === p 
+                                                ? 'bg-brand-500 text-white shadow-glow shadow-brand-500/20' 
+                                                : 'bg-white border border-slate-100 text-slate-600 hover:bg-slate-50'
+                                            }`}
                                         >
                                             {p}
                                         </button>
@@ -164,14 +131,13 @@ const TripList: React.FC = () => {
                             }
                         </div>
 
-                        <button 
+                        <Button 
+                            variant="outline"
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}
-                            className="btn-secondary"
-                            style={{ padding: '8px 16px' }}
                         >
                             Next
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}
@@ -191,3 +157,4 @@ const TripList: React.FC = () => {
 };
 
 export default TripList;
+
