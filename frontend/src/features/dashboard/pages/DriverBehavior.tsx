@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 // Cache bust: 2026-05-12T10:43:00
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+
 import SecurityIcon from '@mui/icons-material/Shield';
 import CarIcon from '@mui/icons-material/DirectionsCar';
 import TimerIcon from '@mui/icons-material/Timer';
@@ -8,14 +8,13 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import WarningIcon from '@mui/icons-material/WarningAmber';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, Cell
 } from 'recharts';
 import { tripApi } from '../../../services/tripApi';
 import { Trip } from '../../../types/trip.types';
 import { formatDistance, formatDuration } from '../../../utils/tripUtils';
 import { Card, Badge, Button } from '../../../components/shared/ui';
 
-const COLORS = ['#000000', '#475569', '#94a3b8', '#cbd5e1'];
+
 
 const DriverBehavior: React.FC = () => {
     const [trips, setTrips] = useState<Trip[]>([]);
@@ -37,7 +36,7 @@ const DriverBehavior: React.FC = () => {
 
     // Calculate aggregate metrics
     const totalDistance = trips.reduce((acc, t) => acc + (t.totalDistance || 0), 0);
-    const totalIdling = trips.reduce((acc, t) => acc + (t.totalIdlingTime || 0), 0);
+
     const totalStoppage = trips.reduce((acc, t) => acc + (t.totalStoppageTime || 0), 0);
     const totalDuration = trips.reduce((acc, t) => acc + (new Date(t.endTime || t.startTime).getTime() - new Date(t.startTime).getTime()), 0);
     const tripCount = trips.length;

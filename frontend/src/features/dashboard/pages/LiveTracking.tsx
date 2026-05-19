@@ -15,8 +15,6 @@ import {
     Dialog,
     IconButton,
     CircularProgress,
-    Box,
-    Typography,
 } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-toastify';
@@ -24,9 +22,6 @@ import { socketService } from '../../../services/socketService';
 import { 
   Button, 
   Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
   Badge,
 } from '../../../components/shared/ui';
 

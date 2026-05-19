@@ -1,14 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { 
-    Box, 
-    Typography, 
     IconButton,
-    Fade,
-    CircularProgress,
     BottomNavigation,
     BottomNavigationAction,
-    Divider
 } from '@mui/material';
 import { 
     MyLocation as GpsFixedIcon, 
