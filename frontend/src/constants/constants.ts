@@ -1,17 +1,17 @@
 export const COLORS = {
     /* Brand / Primary */
-    primary: "#1E3A8A",        // Deep Blue
-    secondary: "#0EA5A4",      // Teal
-    accent: "#2563EB",         // Bright Blue
+    primary: "#000000",        // Sleek Black
+    secondary: "#27272a",      // Zinc 800 (Dark Slate)
+    accent: "#18181b",         // Zinc 900 (Soft Black)
 
     /* Backgrounds */
-    background: "#F8FAFC",     // App background
+    background: "#fafafa",     // Clean app background
     card: "#FFFFFF",           // Cards / panels
-    border: "#E5E7EB",          // Borders & dividers
+    border: "#e4e4e7",          // Borders & dividers
 
     /* Text */
-    textPrimary: "#1F2933",    // Main text
-    textSecondary: "#6B7280",  // Muted text
+    textPrimary: "#09090b",    // Main text
+    textSecondary: "#71717a",  // Muted text
     textInverse: "#FFFFFF",    // Text on dark bg
 
     /* Map / Trip Status */

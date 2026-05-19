@@ -114,19 +114,7 @@ const BenefitsSection: React.FC = () => {
                                 cursor: 'pointer',
                             }}
                         >
-                            <div
-                                style={{
-                                    width: '60px',
-                                    height: '60px',
-                                    borderRadius: '12px',
-                                    background: `${benefit.color}20`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginBottom: '1.5rem',
-                                    color: benefit.color,
-                                }}
-                            >
+                            <div className="benefit-icon-container">
                                 {benefit.icon}
                             </div>
                             <h3
@@ -157,13 +145,15 @@ const BenefitsSection: React.FC = () => {
                     style={{
                         marginTop: '5rem',
                         padding: '3rem',
-                        background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`,
+                        background: '#ffffff',
+                        border: `1px solid ${COLORS.border}`,
                         borderRadius: '20px',
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                         gap: '2rem',
                         textAlign: 'center',
-                        color: COLORS.textInverse,
+                        color: COLORS.textPrimary,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
                     }}
                 >
                     {[
@@ -177,12 +167,13 @@ const BenefitsSection: React.FC = () => {
                                 style={{
                                     fontSize: '2.5rem',
                                     fontWeight: '800',
+                                    color: COLORS.textPrimary,
                                     marginBottom: '0.5rem',
                                 }}
                             >
                                 {stat.value}
                             </div>
-                            <div style={{ fontSize: '1rem', opacity: 0.9 }}>{stat.label}</div>
+                            <div style={{ fontSize: '1rem', color: COLORS.textSecondary }}>{stat.label}</div>
                         </div>
                     ))}
                 </div>

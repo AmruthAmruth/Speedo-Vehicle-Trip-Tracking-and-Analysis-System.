@@ -115,20 +115,7 @@ const FeaturesSection: React.FC = () => {
                                 cursor: 'pointer',
                             }}
                         >
-                            <div
-                                style={{
-                                    width: '70px',
-                                    height: '70px',
-                                    borderRadius: '14px',
-                                    background: `linear-gradient(135deg, ${feature.color}, ${feature.color}dd)`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginBottom: '1.5rem',
-                                    color: COLORS.textInverse,
-                                    boxShadow: `0 8px 20px ${feature.color}40`,
-                                }}
-                            >
+                            <div className="feature-icon-container">
                                 {feature.icon}
                             </div>
                             <h3

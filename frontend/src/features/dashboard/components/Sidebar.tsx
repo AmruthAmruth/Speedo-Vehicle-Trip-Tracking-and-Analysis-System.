@@ -122,6 +122,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                 )}
             </div>
         </aside>
+        </>
     );
 };
 

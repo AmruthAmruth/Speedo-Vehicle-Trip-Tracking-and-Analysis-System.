@@ -65,7 +65,7 @@ const HeroSection: React.FC = () => {
                     <br />
                     <span
                         style={{
-                            background: 'linear-gradient(90deg, #FACC15, #FB923C)',
+                            background: 'linear-gradient(90deg, #ffffff 0%, #d4d4d8 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
