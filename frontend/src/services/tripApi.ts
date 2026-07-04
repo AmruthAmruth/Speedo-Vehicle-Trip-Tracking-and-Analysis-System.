@@ -19,7 +19,6 @@ export const tripApi = {
         return response.data;
     },
 
-
     getUserTrips: async (): Promise<GetTripsResponse> => {
         const response = await api.get<GetTripsResponse>(API_ROUTES.TRIP.USER_TRIPS);
         return response.data;
@@ -41,14 +40,14 @@ export const tripApi = {
     },
 
     startSimulation: async (id: string): Promise<void> => {
-        await api.post(`/trip/${id}/simulate`);
+        await api.post(API_ROUTES.TRIP.SIMULATE_START(id));
     },
 
     stopSimulation: async (id: string): Promise<void> => {
-        await api.post(`/trip/${id}/simulate/stop`);
+        await api.post(API_ROUTES.TRIP.SIMULATE_STOP(id));
     },
-    
-    startLiveTrip: async (name?: string, metadata?: any): Promise<{ trip: Trip }> => {
+
+    startLiveTrip: async (name?: string, metadata?: Record<string, unknown>): Promise<{ trip: Trip }> => {
         const response = await api.post<{ trip: Trip }>(API_ROUTES.TRIP.START_LIVE, { name, metadata });
         return response.data;
     },
@@ -58,6 +57,6 @@ export const tripApi = {
     },
 
     deleteTrip: async (id: string): Promise<void> => {
-        await api.delete(`/trip/${id}`);
-    }
+        await api.delete(API_ROUTES.TRIP.DELETE(id));
+    },
 };

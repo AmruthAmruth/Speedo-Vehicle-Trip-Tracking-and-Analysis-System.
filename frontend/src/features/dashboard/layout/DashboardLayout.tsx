@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
+import { cn } from '../../../utils/cn';
 import '../styles/dashboard.css';
 
 const DashboardLayout: React.FC = () => {
@@ -12,14 +13,14 @@ const DashboardLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleLogout = () => {
+    const handleLogout = useCallback(() => {
         logout();
         navigate('/login');
-    };
+    }, [logout, navigate]);
 
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
-    };
+    const toggleSidebar = useCallback(() => {
+        setIsSidebarOpen(prev => !prev);
+    }, []);
 
     // Auto-close sidebar on mobile after navigation
     useEffect(() => {
@@ -28,7 +29,7 @@ const DashboardLayout: React.FC = () => {
         }
     }, [location.pathname]);
 
-    const getPageTitle = () => {
+    const getPageTitle = useCallback(() => {
         if (location.pathname === '/dashboard') return 'Overview';
         if (location.pathname === '/dashboard/upload') return 'Ingestion';
         if (location.pathname === '/dashboard/trips') return 'History';
@@ -36,7 +37,7 @@ const DashboardLayout: React.FC = () => {
         if (location.pathname === '/dashboard/live') return 'Monitor';
         if (location.pathname.startsWith('/dashboard/trips/')) return 'Analysis';
         return 'Console';
-    };
+    }, [location.pathname]);
 
     return (
         <div className="flex min-h-screen bg-[#fafafa]">
@@ -50,7 +51,7 @@ const DashboardLayout: React.FC = () => {
                 {/* Modern Header */}
                 <header className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100 px-4 md:px-8 flex items-center justify-between">
                     <div className="flex items-center gap-4 md:gap-6">
-                        <button 
+                        <button
                             onClick={toggleSidebar}
                             className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-black"
                         >
@@ -76,8 +77,8 @@ const DashboardLayout: React.FC = () => {
                                 </span>
                             </div>
                         </div>
-                        
-                        <button 
+
+                        <button
                             onClick={handleLogout}
                             className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-black hover:bg-slate-50 transition-all shadow-sm active:scale-95"
                             title="Sign Out"

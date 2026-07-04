@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tripApi } from '../../../services/tripApi';
 import { authApi } from '../../../services/authApi';
 import { Trip } from '../../../types/trip.types';
+import { useAuth } from '../../../context/AuthContext';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import CloseIcon from '@mui/icons-material/Close';
@@ -19,9 +20,9 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-toastify';
 import { socketService } from '../../../services/socketService';
-import { 
-  Button, 
-  Card, 
+import {
+  Button,
+  Card,
   Badge,
 } from '../../../components/shared/ui';
 
@@ -31,40 +32,12 @@ const LiveTracking: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const [pairingToken, setPairingToken] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [qrError, setQrError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
-    useEffect(() => {
-        loadTrips();
-        
-        socketService.connect();
-        
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            const user = JSON.parse(userData);
-            socketService.joinUserRoom(user._id);
-        }
-
-        socketService.onTripStarted((trip) => {
-            setActiveTrips(prev => {
-                if (prev.find(t => t._id === trip._id)) return prev;
-                return [trip, ...prev];
-            });
-            toast.info(`New tracking session started: ${trip.name}`);
-        });
-
-        socketService.onTripStopped((trip) => {
-            setActiveTrips(prev => prev.filter(t => t._id !== trip._id));
-            setPreviousLiveTrips(prev => [trip, ...prev].slice(0, 5));
-            toast.success(`Tracking session ended: ${trip.name}`);
-        });
-
-        const interval = setInterval(loadTrips, 30000);
-        return () => {
-            clearInterval(interval);
-        };
-    }, []);
-
-    const loadTrips = async () => {
+    const loadTrips = useCallback(async () => {
         try {
             const response = await tripApi.getUserTrips();
             const allTrips = response.trips;
@@ -77,7 +50,7 @@ const LiveTracking: React.FC = () => {
             const previous = sortedTrips.filter(t =>
                 !t.isActive &&
                 (t.metadata?.source === 'simulation' || t.metadata?.source === 'mobile')
-            ).slice(0, 5); 
+            ).slice(0, 5);
 
             setActiveTrips(active);
             setPreviousLiveTrips(previous);
@@ -86,46 +59,80 @@ const LiveTracking: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [qrError, setQrError] = useState<string | null>(null);
+    useEffect(() => {
+        loadTrips();
 
-    const handleStartLiveTracking = async () => {
+        const socket = socketService.connect();
+
+        // Join user room using AuthContext instead of reading localStorage directly
+        if (user?.id) {
+            socketService.joinUserRoom(user.id);
+        }
+
+        const handleTripStarted = (trip: Trip) => {
+            setActiveTrips(prev => {
+                if (prev.find(t => t._id === trip._id)) return prev;
+                return [trip, ...prev];
+            });
+            toast.info(`New tracking session started: ${trip.name}`);
+        };
+
+        const handleTripStopped = (trip: Trip) => {
+            setActiveTrips(prev => prev.filter(t => t._id !== trip._id));
+            setPreviousLiveTrips(prev => [trip, ...prev].slice(0, 5));
+            toast.success(`Tracking session ended: ${trip.name}`);
+        };
+
+        socket.on('TRIP_STARTED', handleTripStarted);
+        socket.on('TRIP_STOPPED', handleTripStopped);
+
+        const interval = setInterval(loadTrips, 30000);
+
+        return () => {
+            clearInterval(interval);
+            // Clean up socket listeners on unmount to prevent memory leaks
+            socket.off('TRIP_STARTED', handleTripStarted);
+            socket.off('TRIP_STOPPED', handleTripStopped);
+        };
+    }, [loadTrips, user?.id]);
+
+    const handleStartLiveTracking = useCallback(async () => {
         setQrModalOpen(true);
         setIsGenerating(true);
         setQrError(null);
         setPairingToken(null);
-        
+
         try {
             const response = await authApi.getPairingToken();
             if (response && response.pairingToken) {
                 setPairingToken(response.pairingToken);
             } else {
-                throw new Error("Invalid response from server");
+                throw new Error('Invalid response from server');
             }
         } catch (err) {
             console.error('Failed to get pairing token:', err);
-            setQrError("Could not generate pairing token. Please check your connection.");
+            setQrError('Could not generate pairing token. Please check your connection.');
         } finally {
             setIsGenerating(false);
         }
-    };
+    }, []);
 
-    const trackingUrl = pairingToken 
+    const trackingUrl = pairingToken
         ? `${window.location.origin}/dashboard/track/p/${pairingToken}`
         : `${window.location.origin}/dashboard/track/new`;
 
-    const copyToClipboard = () => {
+    const copyToClipboard = useCallback(() => {
         if (trackingUrl) {
             navigator.clipboard.writeText(trackingUrl);
-            toast.success("Link copied to clipboard!");
+            toast.success('Link copied to clipboard!');
         }
-    };
+    }, [trackingUrl]);
 
-    const renderTripCard = (trip: Trip) => (
-        <Card 
-            key={trip._id} 
+    const renderTripCard = useCallback((trip: Trip) => (
+        <Card
+            key={trip._id}
             className="cursor-pointer overflow-hidden border-slate-100"
             onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
         >
@@ -141,7 +148,7 @@ const LiveTracking: React.FC = () => {
                     <DirectionsCarIcon sx={{ fontSize: 20, color: '#94a3b8' }} />
                 </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
                 <div className="space-y-0.5">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Started</span>
@@ -162,7 +169,7 @@ const LiveTracking: React.FC = () => {
                 <ArrowForwardIosIcon sx={{ fontSize: 10 }} className="transition-transform group-hover:translate-x-1" />
             </div>
         </Card>
-    );
+    ), [navigate]);
 
     if (loading) {
         return (
@@ -181,8 +188,8 @@ const LiveTracking: React.FC = () => {
                     <h1 className="text-4xl font-display font-bold text-slate-900 tracking-tight">Live Tracking</h1>
                     <p className="text-slate-500 text-lg">Monitor your fleet's active sessions in real-time.</p>
                 </div>
-                <Button 
-                    size="lg" 
+                <Button
+                    size="lg"
                     onClick={handleStartLiveTracking}
                     leftIcon={<GpsFixedIcon sx={{ fontSize: 20 }} />}
                     className="shadow-glow"
@@ -224,8 +231,8 @@ const LiveTracking: React.FC = () => {
                         </div>
                         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-premium">
                             {previousLiveTrips.map((trip, idx) => (
-                                <div 
-                                    key={trip._id} 
+                                <div
+                                    key={trip._id}
                                     className={`flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors ${idx !== previousLiveTrips.length - 1 ? 'border-b border-slate-50' : ''}`}
                                     onClick={() => navigate(`/dashboard/trips/${trip._id}`)}
                                 >
@@ -259,8 +266,8 @@ const LiveTracking: React.FC = () => {
                 open={qrModalOpen}
                 onClose={() => setQrModalOpen(false)}
                 PaperProps={{
-                    sx: { 
-                        borderRadius: '24px', 
+                    sx: {
+                        borderRadius: '24px',
                         maxWidth: '440px',
                         width: '100%',
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
@@ -271,8 +278,8 @@ const LiveTracking: React.FC = () => {
                 <div className="p-8">
                     <div className="flex justify-between items-center mb-8">
                         <h3 className="text-2xl font-display font-bold text-slate-900">Link Device</h3>
-                        <IconButton 
-                            onClick={() => setQrModalOpen(false)} 
+                        <IconButton
+                            onClick={() => setQrModalOpen(false)}
                             size="small"
                             className="hover:bg-slate-100 rounded-full"
                         >
@@ -295,22 +302,22 @@ const LiveTracking: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        
+
                         {!qrError && !isGenerating && (
                             <div className="space-y-6 w-full">
                                 <p className="text-slate-500 leading-relaxed font-medium">
                                     Scan the code with your mobile device to link it instantly and start tracking.
                                 </p>
-                                
-                                <Button 
-                                    variant="outline" 
+
+                                <Button
+                                    variant="outline"
                                     className="w-full py-6 rounded-2xl border-slate-200"
-                                    leftIcon={<ContentCopyIcon sx={{ fontSize: 18 }} />} 
+                                    leftIcon={<ContentCopyIcon sx={{ fontSize: 18 }} />}
                                     onClick={copyToClipboard}
                                 >
                                     Copy Link
                                 </Button>
-                                
+
                                 <Button className="w-full py-6 rounded-2xl" onClick={() => setQrModalOpen(false)}>
                                     Done
                                 </Button>
@@ -324,5 +331,3 @@ const LiveTracking: React.FC = () => {
 };
 
 export default LiveTracking;
-
-

@@ -143,8 +143,8 @@ const TripDetails: React.FC = () => {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-                <div className="spinner"></div>
+            <div className="flex justify-center items-center py-40">
+                <div className="h-10 w-10 animate-spin border-2 border-slate-200 border-t-black rounded-full" />
             </div>
         );
     }

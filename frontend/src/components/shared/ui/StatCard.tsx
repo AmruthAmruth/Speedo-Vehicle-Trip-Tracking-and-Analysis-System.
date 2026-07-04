@@ -12,6 +12,8 @@ interface StatCardProps {
     };
     className?: string;
     iconClassName?: string;
+    iconColor?: string;
+    subValue?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({ 
@@ -20,7 +22,9 @@ export const StatCard: React.FC<StatCardProps> = ({
     icon, 
     trend,
     className,
-    iconClassName
+    iconClassName,
+    iconColor,
+    subValue
 }) => {
     return (
         <Card className={cn("p-6 border-slate-50 shadow-premium relative overflow-hidden group", className)}>
@@ -29,9 +33,16 @@ export const StatCard: React.FC<StatCardProps> = ({
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
                         {label}
                     </p>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">
-                        {value}
-                    </h3>
+                    <div className="space-y-1">
+                        <h3 className="text-3xl font-black text-slate-900 tracking-tight">
+                            {value}
+                        </h3>
+                        {subValue && (
+                            <p className="text-xs font-semibold text-slate-400">
+                                {subValue}
+                            </p>
+                        )}
+                    </div>
                     
                     {trend && (
                         <div className={cn(
@@ -44,10 +55,16 @@ export const StatCard: React.FC<StatCardProps> = ({
                     )}
                 </div>
                 
-                <div className={cn(
-                    "p-4 rounded-2xl bg-slate-50 text-slate-400 transition-all duration-300 group-hover:bg-brand-50 group-hover:text-brand-500",
-                    iconClassName
-                )}>
+                <div 
+                    className={cn(
+                        "p-4 rounded-2xl transition-all duration-300",
+                        iconColor 
+                            ? "text-white" 
+                            : "bg-slate-50 text-slate-400 group-hover:bg-brand-50 group-hover:text-brand-500",
+                        iconClassName
+                    )}
+                    style={iconColor ? { background: iconColor } : undefined}
+                >
                     {icon}
                 </div>
             </div>

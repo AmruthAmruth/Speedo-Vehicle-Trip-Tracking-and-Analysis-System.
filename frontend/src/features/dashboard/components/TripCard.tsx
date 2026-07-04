@@ -6,7 +6,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Trip } from '../../../types/trip.types';
 import { formatDistance, formatDuration, calculateTripDuration, formatDate } from '../../../utils/tripUtils';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '../../../components/shared/ui';
+import { Card, CardTitle, Button } from '../../../components/shared/ui';
 
 interface TripCardProps {
     trip: Trip;

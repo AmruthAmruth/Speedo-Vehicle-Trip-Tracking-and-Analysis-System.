@@ -17,5 +17,8 @@ export const API_ROUTES = {
         GET_GPS_POINTS: (id: string) => `/trip/${id}/gpspoints`,
         START_LIVE: '/trip/live/start',
         STOP_LIVE: (id: string) => `/trip/${id}/live/stop`,
+        SIMULATE_START: (id: string) => `/trip/${id}/simulate`,
+        SIMULATE_STOP: (id: string) => `/trip/${id}/simulate/stop`,
+        DELETE: (id: string) => `/trip/${id}`,
     },
 } as const;
